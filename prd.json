@@ -1,0 +1,171 @@
+{
+  "project": "MultiChat",
+  "branchName": "ralph/multi-site-support",
+  "description": "MultiChat 扩展更多 AI 聊天网站支持 - 让用户能够在一个界面中同时与多个不同来源的 AI 进行对话和比较",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "适配器路由更新",
+      "description": "作为开发者，我需要更新适配器路由逻辑，以便根据 URL 正确选择对应的适配器",
+      "acceptanceCriteria": [
+        "更新 src/content/sites/index.ts 的 getActiveChatSiteAdapter() 函数",
+        "支持根据 location.hostname 匹配所有新增的 AI 平台",
+        "保持向后兼容，不影响现有 ChatGPT 和 Gemini 适配器",
+        "添加默认适配器或错误处理",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Claude 适配器",
+      "description": "作为用户，我希望能在 MultiChat 中同时使用 Claude，以便比较 Claude 与其他 AI 的回答",
+      "acceptanceCriteria": [
+        "实现 ChatSiteAdapter 接口的 Claude 适配器",
+        "识别 Claude 的输入框选择器 (div.ProseMirror 或 [contenteditable=\"true\"])",
+        "识别发送按钮选择器",
+        "识别 AI 回复容器选择器",
+        "支持停止生成和新建对话",
+        "更新 manifest.json 添加 claude.ai 的 host_permissions",
+        "更新 DNR 规则支持 Claude 的 iframe 嵌入",
+        "测试通过：能够发送消息并接收回复",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "DeepSeek 适配器",
+      "description": "作为用户，我希望能在 MultiChat 中使用 DeepSeek，以便使用高性价比的国产 AI 模型",
+      "acceptanceCriteria": [
+        "实现 ChatSiteAdapter 接口的 DeepSeek 适配器",
+        "识别 DeepSeek 的输入框选择器",
+        "识别发送按钮选择器",
+        "识别 AI 回复容器选择器",
+        "支持停止生成和新建对话",
+        "更新 manifest.json 添加 chat.deepseek.com 的 host_permissions",
+        "更新 DNR 规则支持 DeepSeek 的 iframe 嵌入",
+        "测试通过：能够发送消息并接收回复",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Kimi 适配器",
+      "description": "作为用户，我希望能在 MultiChat 中使用 Kimi，以便利用其长文本处理能力",
+      "acceptanceCriteria": [
+        "实现 ChatSiteAdapter 接口的 Kimi 适配器",
+        "识别 Kimi 的输入框选择器",
+        "识别发送按钮选择器",
+        "识别 AI 回复容器选择器",
+        "支持停止生成和新建对话",
+        "更新 manifest.json 添加 kimi.moonshot.cn 的 host_permissions",
+        "更新 DNR 规则支持 Kimi 的 iframe 嵌入",
+        "测试通过：能够发送消息并接收回复",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "豆包适配器",
+      "description": "作为用户，我希望能在 MultiChat 中使用豆包，以便使用字节跳动的 AI 服务",
+      "acceptanceCriteria": [
+        "实现 ChatSiteAdapter 接口的豆包适配器",
+        "识别豆包的输入框选择器",
+        "识别发送按钮选择器",
+        "识别 AI 回复容器选择器",
+        "支持停止生成和新建对话",
+        "更新 manifest.json 添加 doubao.com 的 host_permissions",
+        "更新 DNR 规则支持豆包的 iframe 嵌入",
+        "测试通过：能够发送消息并接收回复",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "文心一言适配器",
+      "description": "作为用户，我希望能在 MultiChat 中使用文心一言，以便使用百度的 AI 服务",
+      "acceptanceCriteria": [
+        "实现 ChatSiteAdapter 接口的文心一言适配器",
+        "识别文心一言的输入框选择器",
+        "识别发送按钮选择器",
+        "识别 AI 回复容器选择器",
+        "支持停止生成和新建对话",
+        "更新 manifest.json 添加 yiyan.baidu.com 的 host_permissions",
+        "更新 DNR 规则支持文心一言的 iframe 嵌入",
+        "测试通过：能够发送消息并接收回复",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "通义千问适配器",
+      "description": "作为用户，我希望能在 MultiChat 中使用通义千问，以便使用阿里的 AI 服务",
+      "acceptanceCriteria": [
+        "实现 ChatSiteAdapter 接口的通义千问适配器",
+        "识别通义千问的输入框选择器",
+        "识别发送按钮选择器",
+        "识别 AI 回复容器选择器",
+        "支持停止生成和新建对话",
+        "更新 manifest.json 添加 tongyi.aliyun.com 的 host_permissions",
+        "更新 DNR 规则支持通义千问的 iframe 嵌入",
+        "测试通过：能够发送消息并接收回复",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Perplexity 适配器",
+      "description": "作为用户，我希望能在 MultiChat 中使用 Perplexity，以便获取带引用来源的 AI 搜索结果",
+      "acceptanceCriteria": [
+        "实现 ChatSiteAdapter 接口的 Perplexity 适配器",
+        "识别 Perplexity 的输入框选择器",
+        "识别发送按钮选择器",
+        "识别 AI 回复容器选择器（包含引用链接）",
+        "支持停止生成和新建对话",
+        "更新 manifest.json 添加 perplexity.ai 的 host_permissions",
+        "更新 DNR 规则支持 Perplexity 的 iframe 嵌入",
+        "测试通过：能够发送消息并接收带引用的回复",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "用户界面支持多平台切换",
+      "description": "作为用户，我希望能在 MultiChat 界面中选择启用哪些 AI 平台",
+      "acceptanceCriteria": [
+        "更新聊天界面，显示所有可用的 AI 平台列表",
+        "支持用户勾选/取消勾选特定平台",
+        "用户选择状态持久化到 storage",
+        "只向启用的平台发送消息",
+        "Typecheck passes",
+        "Verify in browser"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
