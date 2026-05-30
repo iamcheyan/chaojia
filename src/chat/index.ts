@@ -384,18 +384,60 @@ function renderAiContent(contentEl: HTMLElement, content: string, contentFormat:
 function sanitizeFileName(name: string): string {
   return name
     .trim()
-    .replace(/[\\/:*?"<>|]+/g, '-')
-    .replace(/\s+/g, ' ')
-    .slice(0, 80) || 'chat'
+    .normalize('NFKC')
+    .replace(/[^\p{L}\p{N}\s]+/gu, ' ')
+    .replace(/\s+/g, '')
+    .slice(0, 12) || 'chat'
+}
+
+function buildExportTimestamp(date = new Date()): string {
+  const pad = (value: number, length = 2): string => String(value).padStart(length, '0')
+  return [
+    date.getFullYear(),
+    pad(date.getMonth() + 1),
+    pad(date.getDate()),
+    '-',
+    pad(date.getHours()),
+    pad(date.getMinutes()),
+    pad(date.getSeconds()),
+    pad(date.getMilliseconds(), 3),
+  ].join('')
+}
+
+function buildExportFileName(title: string): string {
+  return `${sanitizeFileName(title)}-${buildExportTimestamp()}.zip`
 }
 
 function inferImageExtension(url: string): string {
   try {
-    const pathname = new URL(url).pathname.toLowerCase()
+    const parsed = new URL(url)
+    if (parsed.hostname.endsWith('images.openai.com')) {
+      return '.jpg'
+    }
+    const pathname = parsed.pathname.toLowerCase()
     const extMatch = pathname.match(/\.(png|jpe?g|gif|webp|bmp|svg)$/)
     if (extMatch) return extMatch[0]
   } catch {}
   return '.png'
+}
+
+function pickExportImageSource(src: string, alt: string): { src: string, alt: string } {
+  const normalizedSrc = src.trim()
+  const normalizedAlt = alt.trim()
+  let preferredSrc = normalizedSrc
+
+  try {
+    const altUrl = new URL(normalizedAlt)
+    if ((altUrl.protocol === 'https:' || altUrl.protocol === 'http:')
+      && /(?:^|[?&])purpose=fullsize(?:&|$)/.test(altUrl.search)) {
+      preferredSrc = altUrl.toString()
+    }
+  } catch {}
+
+  return {
+    src: preferredSrc,
+    alt: normalizedAlt && !/^https?:\/\//i.test(normalizedAlt) ? normalizedAlt : 'image',
+  }
 }
 
 function getCurrentChatTitle(): string {
@@ -467,9 +509,10 @@ function convertHtmlToMarkdown(
       case 'IMG': {
         const src = node.getAttribute('src')?.trim() ?? ''
         if (!src) return ''
-        const alt = node.getAttribute('alt')?.trim() ?? 'image'
-        const path = registerImage(src, alt)
-        return path ? `![${alt}](${path})\n\n` : ''
+        const alt = node.getAttribute('alt')?.trim() ?? ''
+        const preferred = pickExportImageSource(src, alt)
+        const path = registerImage(preferred.src, preferred.alt)
+        return path ? `![${preferred.alt}](${path})\n\n` : ''
       }
       case 'PRE': {
         const codeText = node.textContent?.replace(/\n$/, '') ?? ''
@@ -574,7 +617,7 @@ async function exportCurrentChat(): Promise<void> {
     }
 
     const archiveBlob = await zip.generateAsync({ type: 'blob' })
-    const fileName = `${sanitizeFileName(getCurrentChatTitle())}.zip`
+    const fileName = buildExportFileName(getCurrentChatTitle())
     downloadBlobFile(archiveBlob, fileName)
   } catch (error) {
     console.error('Failed to export chat:', error)
