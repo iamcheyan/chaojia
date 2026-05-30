@@ -76,3 +76,20 @@ Started: 2026-05-30 16:08:03
   - New chat button matches patterns like `新对话`, `新会话`
   - Doubao main URL for new chat fallback is `https://www.doubao.com/chat/`
 ---
+
+## 2026-05-31 15:45 - US-006
+- Implemented Yiyan (文心一言) adapter in `src/content/sites/yiyan.ts`
+- Includes: textarea/contenteditable input selectors, send button selectors (multilingual), response container detection, stop generating, start new chat
+- Handles streaming detection and HTML serialization of Yiyan messages
+- Updated `src/content/sites/index.ts` to replace placeholder with real adapter for yiyan.baidu.com
+- Updated `manifest.json` with yiyan.baidu.com, *.yiyan.baidu.com, www.baidu.com, *.baidu.com host permissions and content_scripts matches
+- Updated `public/frame-rules.json` with Yiyan iframe support (rule id 11) and Baidu iframe support (rule id 12)
+- Typecheck and lint pass
+- Files: `src/content/sites/yiyan.ts`, `src/content/sites/index.ts`, `public/manifest.json`, `public/frame-rules.json`
+- **Learnings for future iterations:**
+  - Yiyan uses textarea or contenteditable div for input (similar to other Chinese AI sites)
+  - Response containers use standard `.markdown`, `.prose`, `.chat-content`, `.assistant-content` classes
+  - New chat button matches patterns like `新建对话`, `新对话`
+  - Yiyan main URL for new chat fallback is `https://yiyan.baidu.com/`
+  - Baidu domain includes many subdomains, so added both yiyan.baidu.com and www.baidu.com patterns
+---

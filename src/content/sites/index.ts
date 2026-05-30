@@ -5,6 +5,7 @@ import { createDeepSeekAdapter } from './deepseek'
 import { createKimiAdapter } from './kimi'
 import { createDoubaoAdapter } from './doubao'
 import { createYiyanAdapter } from './yiyan'
+import { createTongyiAdapter } from './tongyi'
 import { createPlaceholderAdapter } from './placeholder'
 import type { ChatSiteAdapter } from './types'
 
@@ -39,8 +40,8 @@ const adapterMap: Record<string, () => ChatSiteAdapter> = {
   // 文心一言 (Yiyan by Baidu)
   'yiyan.baidu.com': createYiyanAdapter,
 
-  // 通义千问 (placeholder - full adapter in US-007)
-  'tongyi.aliyun.com': () => createPlaceholderAdapter('tongyi', 'tongyi.aliyun.com'),
+  // 通义千问 (Tongyi by Alibaba)
+  'tongyi.aliyun.com': createTongyiAdapter,
 
   // Perplexity (placeholder - full adapter in US-008)
   'www.perplexity.ai': () => createPlaceholderAdapter('perplexity', 'www.perplexity.ai'),

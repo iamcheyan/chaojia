@@ -178,5 +178,20 @@
       "urlFilter": "||www.baidu.com/",
       "resourceTypes": ["sub_frame"]
     }
+  },
+  {
+    "id": 13,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "responseHeaders": [
+        { "header": "content-security-policy", "operation": "remove" },
+        { "header": "x-frame-options", "operation": "remove" }
+      ]
+    },
+    "condition": {
+      "urlFilter": "||tongyi.aliyun.com/",
+      "resourceTypes": ["sub_frame"]
+    }
   }
 ]
