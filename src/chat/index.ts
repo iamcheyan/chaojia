@@ -92,6 +92,12 @@ const geminiFrameWrapperEl = document.getElementById('ai-frame-wrapper-gemini') 
 const panelResizerEl = document.getElementById('panel-resizer') as HTMLDivElement
 const chatgptFrameEl = document.getElementById('frame-chatgpt') as HTMLIFrameElement
 const geminiFrameEl = document.getElementById('frame-gemini') as HTMLIFrameElement
+const imageLightboxEl = document.getElementById('image-lightbox') as HTMLDivElement
+const imageLightboxImageEl = document.getElementById('image-lightbox-image') as HTMLImageElement
+const imageLightboxCounterEl = document.getElementById('image-lightbox-counter') as HTMLDivElement
+const imageLightboxCloseBtn = document.getElementById('image-lightbox-close') as HTMLButtonElement
+const imageLightboxPrevBtn = document.getElementById('image-lightbox-prev') as HTMLButtonElement
+const imageLightboxNextBtn = document.getElementById('image-lightbox-next') as HTMLButtonElement
 const chatgptIconUrl = chrome.runtime.getURL('icons/chatgpt.png')
 const geminiIconUrl = chrome.runtime.getURL('icons/gemini.png')
 const DEFAULT_SITE_URLS: Record<SiteRole, string> = {
@@ -129,6 +135,9 @@ const TRANSLATIONS: Record<LanguageMode, Record<string, string>> = {
     openSettings: '打开设置',
     closeSearch: '关闭搜索',
     downloadChat: '下载对话',
+    closePreview: '关闭图片预览',
+    previewPrev: '上一张',
+    previewNext: '下一张',
     searchPlaceholder: '搜索聊天...',
     noSearchResults: '没有找到相关历史记录',
     exportEmpty: '当前没有可下载的聊天内容',
@@ -165,6 +174,9 @@ const TRANSLATIONS: Record<LanguageMode, Record<string, string>> = {
     openSettings: 'Open settings',
     closeSearch: 'Close search',
     downloadChat: 'Download chat',
+    closePreview: 'Close image preview',
+    previewPrev: 'Previous image',
+    previewNext: 'Next image',
     searchPlaceholder: 'Search chats...',
     noSearchResults: 'No matching chat history',
     exportEmpty: 'No chat content to export',
@@ -201,6 +213,9 @@ const TRANSLATIONS: Record<LanguageMode, Record<string, string>> = {
     openSettings: '設定を開く',
     closeSearch: '検索を閉じる',
     downloadChat: 'チャットをダウンロード',
+    closePreview: '画像プレビューを閉じる',
+    previewPrev: '前の画像',
+    previewNext: '次の画像',
     searchPlaceholder: 'チャットを検索...',
     noSearchResults: '一致する履歴がありません',
     exportEmpty: 'ダウンロードできるチャット内容がありません',
@@ -215,6 +230,8 @@ let currentLanguage: LanguageMode = 'zh-CN'
 let isSidebarCollapsed = false
 let isExportingChat = false
 let currentSessionUrls: ChatSessionUrls = {}
+let currentLightboxImages: string[] = []
+let currentLightboxIndex = 0
 let activeProviders: Record<SiteRole, boolean> = {
   chatgpt: true,
   gemini: true,
@@ -351,6 +368,91 @@ function mergeAdjacentImageRows(container: HTMLElement): void {
   }
 }
 
+function extractPromotableInlineImageWrappers(node: HTMLElement): HTMLElement[] {
+  if (node.classList.contains('message-image-row') || node.classList.contains('message-image-card')) return []
+  if (node.classList.contains('message-inline-image')) return [node]
+
+  const wrappers = Array.from(node.querySelectorAll<HTMLElement>('.message-inline-image'))
+  if (wrappers.length === 0) return []
+
+  const cloned = node.cloneNode(true) as HTMLElement
+  for (const removable of Array.from(cloned.querySelectorAll('.message-inline-image, .message-image-row, .message-image-card, img'))) {
+    removable.remove()
+  }
+
+  if ((cloned.textContent ?? '').trim()) {
+    return []
+  }
+
+  return wrappers.filter(wrapper => !wrapper.parentElement?.closest('.message-inline-image'))
+}
+
+function promoteInlineImageSequences(container: HTMLElement): void {
+  const children = Array.from(container.children) as HTMLElement[]
+  let currentGroup: { anchor: HTMLElement, wrapper: HTMLElement, cleanup: HTMLElement }[] = []
+
+  const flushGroup = (): void => {
+    if (currentGroup.length < 2) {
+      currentGroup = []
+      return
+    }
+
+    const anchorEl = currentGroup[0].anchor
+    if (!anchorEl.parentElement || anchorEl.parentElement !== container) {
+      currentGroup = []
+      return
+    }
+
+    const rowEl = document.createElement('div')
+    rowEl.className = 'message-image-row'
+    container.insertBefore(rowEl, anchorEl)
+    const cleanupTargets = new Set<HTMLElement>()
+
+    for (const item of currentGroup) {
+      const image = item.wrapper.querySelector<HTMLImageElement>('img')
+      if (!image) continue
+
+      image.classList.remove('message-inline-image-element')
+
+      const cardEl = document.createElement('div')
+      cardEl.className = 'message-image-card'
+      rowEl.appendChild(cardEl)
+      cardEl.appendChild(image)
+      cleanupTargets.add(item.cleanup)
+    }
+
+    for (const cleanup of cleanupTargets) {
+      if (cleanup.isConnected && cleanup.parentElement === container) {
+        cleanup.remove()
+      }
+    }
+
+    currentGroup = []
+  }
+
+  for (const child of children) {
+    if (child.classList.contains('message-image-row') || child.classList.contains('message-image-card')) {
+      flushGroup()
+      continue
+    }
+
+    const wrappers = extractPromotableInlineImageWrappers(child)
+    if (wrappers.length > 0) {
+      currentGroup.push(...wrappers.map(wrapper => ({
+        anchor: child,
+        wrapper,
+        cleanup: child,
+      })))
+      continue
+    }
+
+    flushGroup()
+    promoteInlineImageSequences(child)
+  }
+
+  flushGroup()
+}
+
 function markInlineImageWrappers(contentEl: HTMLElement): void {
   const getWrapper = (image: HTMLImageElement): HTMLElement => {
     let current: HTMLElement = image
@@ -456,6 +558,62 @@ function layoutMessageImages(contentEl: HTMLElement): void {
   mergeAdjacentImageRows(contentEl)
   removeEmptyImageWrappers(contentEl)
   markInlineImageWrappers(contentEl)
+  promoteInlineImageSequences(contentEl)
+  mergeAdjacentImageRows(contentEl)
+  removeEmptyImageWrappers(contentEl)
+}
+
+function getImageSource(image: HTMLImageElement): string {
+  return (image.currentSrc || image.getAttribute('src') || '').trim()
+}
+
+function collectMessageImages(contentEl: HTMLElement): string[] {
+  return Array.from(contentEl.querySelectorAll<HTMLImageElement>('img'))
+    .map(getImageSource)
+    .filter((src): src is string => Boolean(src))
+}
+
+function syncImageLightbox(): void {
+  const total = currentLightboxImages.length
+  const safeIndex = Math.min(Math.max(currentLightboxIndex, 0), Math.max(total - 1, 0))
+  currentLightboxIndex = safeIndex
+
+  const src = currentLightboxImages[safeIndex] || ''
+  imageLightboxImageEl.src = src
+  imageLightboxImageEl.alt = total > 1 ? `image ${safeIndex + 1}` : 'image'
+  imageLightboxCounterEl.textContent = total > 1 ? `${safeIndex + 1} / ${total}` : ''
+  imageLightboxPrevBtn.disabled = total <= 1 || safeIndex <= 0
+  imageLightboxNextBtn.disabled = total <= 1 || safeIndex >= total - 1
+  imageLightboxPrevBtn.hidden = total <= 1
+  imageLightboxNextBtn.hidden = total <= 1
+}
+
+function openImageLightbox(images: string[], index: number): void {
+  if (images.length === 0) return
+  currentLightboxImages = images
+  currentLightboxIndex = index
+  syncImageLightbox()
+  imageLightboxEl.hidden = false
+  imageLightboxEl.setAttribute('aria-hidden', 'false')
+  document.body.classList.add('image-lightbox-open')
+}
+
+function closeImageLightbox(): void {
+  currentLightboxImages = []
+  currentLightboxIndex = 0
+  imageLightboxEl.hidden = true
+  imageLightboxEl.setAttribute('aria-hidden', 'true')
+  imageLightboxImageEl.removeAttribute('src')
+  imageLightboxCounterEl.textContent = ''
+  document.body.classList.remove('image-lightbox-open')
+}
+
+function stepImageLightbox(direction: -1 | 1): void {
+  if (currentLightboxImages.length <= 1) return
+  const nextIndex = currentLightboxIndex + direction
+  if (nextIndex < 0 || nextIndex >= currentLightboxImages.length) return
+  currentLightboxIndex = nextIndex
+  syncImageLightbox()
 }
 
 function highlightCodeBlocks(contentEl: HTMLElement): void {
@@ -1059,6 +1217,12 @@ function updateStaticTexts(): void {
     exportChatBtn.title = t('downloadChat')
     exportChatBtn.setAttribute('aria-label', t('downloadChat'))
   }
+  imageLightboxCloseBtn.title = t('closePreview')
+  imageLightboxCloseBtn.setAttribute('aria-label', t('closePreview'))
+  imageLightboxPrevBtn.title = t('previewPrev')
+  imageLightboxPrevBtn.setAttribute('aria-label', t('previewPrev'))
+  imageLightboxNextBtn.title = t('previewNext')
+  imageLightboxNextBtn.setAttribute('aria-label', t('previewNext'))
 
   const themeButtons = themeOptionsEl.querySelectorAll<HTMLButtonElement>('.theme-option')
   for (const button of themeButtons) {
@@ -1769,6 +1933,21 @@ sendBtn.addEventListener('click', sendMessage)
 exportChatBtn.addEventListener('click', () => {
   void exportCurrentChat()
 })
+messagesEl.addEventListener('click', (event) => {
+  const target = event.target as HTMLElement
+  const image = target.closest<HTMLImageElement>('.message-content img')
+  if (!image) return
+
+  const contentEl = image.closest<HTMLElement>('.message-content')
+  if (!contentEl) return
+
+  const images = collectMessageImages(contentEl)
+  if (images.length === 0) return
+
+  const clickedSrc = getImageSource(image)
+  const index = Math.max(images.findIndex(src => src === clickedSrc), 0)
+  openImageLightbox(images, index)
+})
 inputEl.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault()
@@ -1836,12 +2015,39 @@ searchOverlayEl.addEventListener('click', (event) => {
     closeSearchOverlay()
   }
 })
+imageLightboxEl.addEventListener('click', (event) => {
+  const target = event.target as HTMLElement
+  if (target === imageLightboxEl || target.classList.contains('image-lightbox-backdrop')) {
+    closeImageLightbox()
+  }
+})
+imageLightboxCloseBtn.addEventListener('click', closeImageLightbox)
+imageLightboxPrevBtn.addEventListener('click', () => stepImageLightbox(-1))
+imageLightboxNextBtn.addEventListener('click', () => stepImageLightbox(1))
 document.addEventListener('click', (event) => {
   const target = event.target as Node
   if (settingsPopoverEl.contains(target) || settingsToggleBtn.contains(target)) return
   toggleSettingsPopover(false)
 })
 document.addEventListener('keydown', (event) => {
+  if (!imageLightboxEl.hidden) {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      closeImageLightbox()
+      return
+    }
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      event.preventDefault()
+      stepImageLightbox(-1)
+      return
+    }
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      event.preventDefault()
+      stepImageLightbox(1)
+      return
+    }
+  }
+
   if (event.key === 'Escape' && !searchOverlayEl.hidden) {
     closeSearchOverlay()
   }

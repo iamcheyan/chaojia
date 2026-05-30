@@ -2,12 +2,36 @@ import { getActiveChatSiteAdapter } from './sites'
 import { createReplyObserver } from './replyObserver'
 import type { CapturedReply, ChatSiteAdapter } from './sites/types'
 
+function injectEmbeddedScrollbarStyles(): void {
+  if (document.getElementById('multichat-hide-embedded-scrollbar')) return
+
+  const style = document.createElement('style')
+  style.id = 'multichat-hide-embedded-scrollbar'
+  style.textContent = `
+    html, body, * {
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
+    }
+
+    html::-webkit-scrollbar,
+    body::-webkit-scrollbar,
+    *::-webkit-scrollbar {
+      width: 0 !important;
+      height: 0 !important;
+      display: none !important;
+    }
+  `
+
+  ;(document.head || document.documentElement).appendChild(style)
+}
+
 // Guard against double-loading
 if (typeof (window as any).__CHAOJIA_LOADED__ === 'undefined') {
   ;(window as any).__CHAOJIA_LOADED__ = true
 
   // Only activate in embedded frames (iframes)
   if (window.parent !== window) {
+    injectEmbeddedScrollbarStyles()
     const siteAdapter: ChatSiteAdapter = getActiveChatSiteAdapter()
     const replyObserver = createReplyObserver({
       siteAdapter,

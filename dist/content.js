@@ -776,10 +776,31 @@
   }
 
   // src/content/index.ts
+  function injectEmbeddedScrollbarStyles() {
+    if (document.getElementById("multichat-hide-embedded-scrollbar")) return;
+    const style = document.createElement("style");
+    style.id = "multichat-hide-embedded-scrollbar";
+    style.textContent = `
+    html, body, * {
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
+    }
+
+    html::-webkit-scrollbar,
+    body::-webkit-scrollbar,
+    *::-webkit-scrollbar {
+      width: 0 !important;
+      height: 0 !important;
+      display: none !important;
+    }
+  `;
+    (document.head || document.documentElement).appendChild(style);
+  }
   if (typeof window.__CHAOJIA_LOADED__ === "undefined") {
     ;
     window.__CHAOJIA_LOADED__ = true;
     if (window.parent !== window) {
+      injectEmbeddedScrollbarStyles();
       const siteAdapter = getActiveChatSiteAdapter();
       const replyObserver = createReplyObserver({
         siteAdapter,
