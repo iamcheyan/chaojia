@@ -44,3 +44,19 @@ Started: 2026-05-30 16:08:03
   - Response containers use `.markdown`, `.prose` classes (common pattern across Chinese AI sites)
   - Selectors include multilingual support (Chinese, English, Japanese)
 ---
+
+## 2026-05-31 11:30 - US-004
+- Implemented Kimi adapter in `src/content/sites/kimi.ts`
+- Includes: textarea/contenteditable input selectors, send button selectors, response container detection, stop generating, start new chat
+- Handles streaming detection and HTML serialization of Kimi messages
+- Updated `manifest.json` with kimi.moonshot.cn host permissions and content_scripts match
+- Updated DNR frame rules with Kimi iframe support (rule id 9)
+- Updated `getActiveChatSiteAdapter()` to route kimi.moonshot.cn to createKimiAdapter
+- Typecheck and lint pass
+- Files: `src/content/sites/kimi.ts`, `src/content/sites/index.ts`, `public/manifest.json`, `public/frame-rules.json`
+- **Learnings for future iterations:**
+  - Kimi uses a contenteditable div (`.chat-input-editor`) for input
+  - Response containers use standard `.markdown`, `.prose` classes
+  - Send button has a `.send-button-container` class that becomes enabled when text is entered
+  - Kimi's main domain is `kimi.moonshot.cn` but redirects to `www.kimi.com` for the main page
+---
