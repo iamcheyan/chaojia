@@ -316,8 +316,80 @@ function extractGalleryImageNodes(node: Node): HTMLImageElement[] {
   return []
 }
 
-function layoutMessageImages(contentEl: HTMLElement): void {
-  const nodes = Array.from(contentEl.childNodes)
+function removeEmptyImageWrappers(container: HTMLElement): void {
+  const elements = Array.from(container.querySelectorAll<HTMLElement>('*')).reverse()
+  for (const element of elements) {
+    if (element.tagName === 'IMG') continue
+    if (element.classList.contains('message-image-row') || element.classList.contains('message-image-card')) continue
+    if (element.querySelector('.message-image-row, .message-image-card')) continue
+    if (element.querySelector('img')) continue
+    if ((element.textContent ?? '').trim()) continue
+    element.remove()
+  }
+}
+
+function promoteWrappedImageGallery(container: HTMLElement): void {
+  const children = Array.from(container.children) as HTMLElement[]
+  for (const child of children) {
+    if (child.classList.contains('message-image-row') || child.classList.contains('message-image-card')) continue
+
+    const images = Array.from(child.querySelectorAll<HTMLImageElement>('img'))
+      .filter(image => !image.closest('.message-image-row, .message-image-card'))
+
+    if (images.length >= 2) {
+      const clone = child.cloneNode(true) as HTMLElement
+      for (const image of Array.from(clone.querySelectorAll('img'))) {
+        image.remove()
+      }
+      const remainingText = (clone.textContent ?? '').trim()
+
+      if (remainingText) {
+        const rowEl = document.createElement('div')
+        rowEl.className = 'message-image-row'
+        child.insertBefore(rowEl, child.firstChild)
+
+        for (const image of images) {
+          const cardEl = document.createElement('div')
+          cardEl.className = 'message-image-card'
+          rowEl.appendChild(cardEl)
+          cardEl.appendChild(image)
+        }
+
+        removeEmptyImageWrappers(child)
+      }
+    }
+
+    promoteWrappedImageGallery(child)
+  }
+}
+
+function mergeAdjacentImageRows(container: HTMLElement): void {
+  const children = Array.from(container.children) as HTMLElement[]
+  let currentRow: HTMLElement | null = null
+
+  for (const child of children) {
+    if (child.classList.contains('message-image-row')) {
+      if (!currentRow) {
+        currentRow = child
+        continue
+      }
+
+      while (child.firstChild) {
+        currentRow.appendChild(child.firstChild)
+      }
+      child.remove()
+      continue
+    }
+
+    currentRow = null
+    mergeAdjacentImageRows(child)
+  }
+}
+
+function layoutMessageImagesInContainer(container: HTMLElement): void {
+  if (container.classList.contains('message-image-row') || container.classList.contains('message-image-card')) return
+
+  const nodes = Array.from(container.childNodes)
   let currentGroup: { source: HTMLElement, image: HTMLImageElement, removeSource: boolean }[] = []
 
   const flushGroup = (): void => {
@@ -327,9 +399,14 @@ function layoutMessageImages(contentEl: HTMLElement): void {
     }
 
     const anchorEl = currentGroup[0].source
+    if (!anchorEl.isConnected || anchorEl.parentElement !== container) {
+      currentGroup = []
+      return
+    }
+
     const rowEl = document.createElement('div')
     rowEl.className = 'message-image-row'
-    contentEl.insertBefore(rowEl, anchorEl)
+    container.insertBefore(rowEl, anchorEl)
     const sourcesToRemove = new Set<HTMLElement>()
 
     for (const item of currentGroup) {
@@ -343,7 +420,9 @@ function layoutMessageImages(contentEl: HTMLElement): void {
     }
 
     for (const source of sourcesToRemove) {
-      source.remove()
+      if (source.isConnected && source.parentElement === container) {
+        source.remove()
+      }
     }
 
     currentGroup = []
@@ -351,7 +430,7 @@ function layoutMessageImages(contentEl: HTMLElement): void {
 
   for (const node of nodes) {
     const images = extractGalleryImageNodes(node)
-    if (images.length > 0 && node instanceof HTMLElement) {
+    if (images.length > 0 && node instanceof HTMLElement && node.parentElement === container) {
       for (const image of images) {
         currentGroup.push({
           source: node,
@@ -366,6 +445,17 @@ function layoutMessageImages(contentEl: HTMLElement): void {
   }
 
   flushGroup()
+
+  const children = Array.from(container.children) as HTMLElement[]
+  for (const child of children) {
+    layoutMessageImagesInContainer(child)
+  }
+}
+
+function layoutMessageImages(contentEl: HTMLElement): void {
+  promoteWrappedImageGallery(contentEl)
+  layoutMessageImagesInContainer(contentEl)
+  mergeAdjacentImageRows(contentEl)
 }
 
 function highlightCodeBlocks(contentEl: HTMLElement): void {
