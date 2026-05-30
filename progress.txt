@@ -14,3 +14,18 @@ Started: 2026-05-30 16:08:03
   - Placeholder adapters log warnings on method calls - will be replaced with real implementations in US-002 through US-008
   - `ChatSiteAdapter` interface requires: id, getResponseContainers, getAllAssistantReplies, readResponse, isGenerating, stopGenerating, startNewChat, fillAndSend
 ---
+
+## 2026-05-31 00:48 - US-002
+- Claude adapter already fully implemented in `src/content/sites/claude.ts`
+- Includes: editor selectors (ProseMirror/contenteditable), send button selectors, response container detection, stop generating, start new chat
+- Handles streaming detection and HTML serialization of Claude messages
+- `manifest.json` already has `claude.ai` host permissions and content_scripts match
+- DNR frame rules already include Claude iframe support (rule id 7)
+- `getActiveChatSiteAdapter()` already routes `claude.ai` to `createClaudeAdapter`
+- Typecheck passes
+- Files: `src/content/sites/claude.ts`, `public/manifest.json`, `public/frame-rules.json`
+- **Learnings for future iterations:**
+  - Claude uses ProseMirror editor (`div.ProseMirror[contenteditable=true]`) for input
+  - Claude messages use `[data-is-streaming]` attribute and `.font-claude-message` class
+  - HTML serialization with image extraction is needed for Claude responses
+---
