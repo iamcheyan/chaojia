@@ -1,0 +1,19 @@
+{
+  "name": "chaojia",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite build --watch --mode development",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.268",
+    "esbuild": "^0.21.0",
+    "typescript": "^5.5.3",
+    "vite": "^5.3.4"
+  },
+  "dependencies": {
+    "marked": "^18.0.4"
+  }
+}

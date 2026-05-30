@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChaoJia - AI 聊天聚合器</title>
+  <link rel="stylesheet" href="chat.css">
+</head>
+<body>
+  <!-- 侧边栏 - 历史消息 -->
+  <div id="sidebar" class="sidebar">
+    <div id="sidebar-rail" class="sidebar-rail">
+      <button id="sidebar-rail-toggle" class="sidebar-rail-toggle" title="打开侧边栏">◧</button>
+      <button id="sidebar-rail-new-chat" class="sidebar-rail-icon" title="新对话">✎</button>
+      <button id="sidebar-rail-search" class="sidebar-rail-icon" title="搜索">⌕</button>
+      <button id="sidebar-rail-theme" class="sidebar-rail-icon" title="设置">⚙</button>
+      <div class="sidebar-rail-spacer"></div>
+      <div class="sidebar-rail-avatar">T</div>
+    </div>
+
+    <div class="sidebar-main">
+    <div class="sidebar-header">
+      <div class="sidebar-brand">
+        <div class="sidebar-title">ChaoJia</div>
+      </div>
+      <button id="sidebar-collapse-btn" class="sidebar-collapse-btn" title="折叠侧边栏">◧</button>
+      <button id="close-sidebar" class="sidebar-close">×</button>
+    </div>
+
+    <div class="sidebar-nav">
+      <button id="new-chat" class="sidebar-nav-item sidebar-nav-primary">+ 新对话</button>
+      <button id="sidebar-nav-search" class="sidebar-nav-item">搜索聊天</button>
+      <button id="sidebar-nav-settings" class="sidebar-nav-item">设置</button>
+    </div>
+
+    <div class="sidebar-section">
+      <div id="sidebar-section-recent" class="sidebar-section-title">最近</div>
+      <div id="history-list" class="history-list"></div>
+    </div>
+
+    <div class="sidebar-settings">
+      <div class="settings-trigger-row">
+        <button id="settings-toggle" class="settings-trigger" title="设置">⚙</button>
+      </div>
+      <div id="settings-popover" class="settings-popover">
+        <div class="settings-group">
+          <div id="settings-theme-title" class="settings-group-title">主题</div>
+          <div id="theme-options" class="settings-options settings-options-theme">
+            <button class="theme-option" data-theme="wechat" title="WeChat">WeChat</button>
+            <button class="theme-option" data-theme="chatgpt-light" title="ChatGPT 亮色">ChatGPT 亮色</button>
+            <button class="theme-option" data-theme="chatgpt-dark" title="ChatGPT 深色">ChatGPT 深色</button>
+          </div>
+        </div>
+        <div class="settings-group">
+          <div id="settings-language-title" class="settings-group-title">语言</div>
+          <div id="language-options" class="settings-options settings-options-language">
+            <button class="language-option" data-language="zh-CN">中</button>
+            <button class="language-option" data-language="en">EN</button>
+            <button class="language-option" data-language="ja">日</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    </div>
+  </div>
+
+  <!-- 遮罩层 -->
+  <div id="overlay" class="overlay"></div>
+
+  <div id="layout">
+    <!-- Left: Chat panel -->
+    <div id="chat-panel">
+      <header id="header">
+        <div class="header-actions">
+          <button id="menu-btn" class="menu-btn">☰</button>
+        </div>
+        <h1>ChaoJia</h1>
+        <div id="status-bar">
+          <span id="status-chatgpt" class="status">⚪ ChatGPT: 未连接</span>
+          <span id="status-gemini" class="status">⚪ Gemini: 未连接</span>
+        </div>
+      </header>
+
+      <main id="messages"></main>
+
+      <footer id="composer">
+        <textarea id="input" placeholder="输入问题，同时发给 ChatGPT 和 Gemini..." rows="2"></textarea>
+        <button id="send-btn">发送</button>
+      </footer>
+    </div>
+
+    <div id="panel-resizer" class="panel-resizer" aria-label="调整聊天面板宽度" title="拖动调整宽度"></div>
+
+    <!-- Right: AI iframes -->
+    <div id="ai-panel">
+      <div class="ai-frame-wrapper">
+        <div class="ai-frame-header">
+          <img class="ai-frame-header-icon" src="./icons/chatgpt.png" alt="ChatGPT">
+          <span class="ai-frame-header-text">ChatGPT</span>
+        </div>
+        <iframe id="frame-chatgpt" src="https://chatgpt.com/"></iframe>
+      </div>
+      <div class="ai-frame-wrapper">
+        <div class="ai-frame-header">
+          <img class="ai-frame-header-icon" src="./icons/gemini.png" alt="Gemini">
+          <span class="ai-frame-header-text">Gemini</span>
+        </div>
+        <iframe id="frame-gemini" src="https://gemini.google.com/"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <script src="chat.js"></script>
+</body>
+</html>
