@@ -216,9 +216,9 @@ body[data-theme='chatgpt-dark'] .sidebar-rail {
 body[data-theme='wechat'] .sidebar-brand,
 body[data-theme='chatgpt-light'] .sidebar-brand,
 body[data-theme='chatgpt-dark'] .sidebar-brand {
-  background: var(--theme-option-active-bg);
-  border-radius: 12px;
-  padding: 10px 14px;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
 }
 
 body[data-theme='wechat'] .sidebar-title,
@@ -470,11 +470,15 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   gap: 8px;
+  background: transparent;
+  padding: 0;
 }
 
 .sidebar-title {
-  font-size: 17px;
-  font-weight: 600;
+  font-family: "SF Pro Display", "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .sidebar-close {
@@ -1803,7 +1807,7 @@ body[data-theme='chatgpt-dark'] .ai-frame-header-text {
   display: inline-flex;
   width: 140px;
   max-width: 100%;
-  margin: 12px 8px 0 0;
+  margin: 0 10px 10px 0;
   vertical-align: top;
   overflow: hidden;
   border-radius: 0;
