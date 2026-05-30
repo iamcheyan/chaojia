@@ -132,11 +132,13 @@ body[data-theme='chatgpt-dark'] {
   --button-hover-bg: rgba(255, 255, 255, 0.08);
 }
 
+body[data-theme='wechat'] .overlay,
 body[data-theme='chatgpt-light'] .overlay,
 body[data-theme='chatgpt-dark'] .overlay {
   display: none;
 }
 
+body[data-theme='wechat'] .sidebar,
 body[data-theme='chatgpt-light'] .sidebar,
 body[data-theme='chatgpt-dark'] .sidebar {
   left: 0;
@@ -146,16 +148,20 @@ body[data-theme='chatgpt-dark'] .sidebar {
   box-shadow: none;
 }
 
+body[data-theme='wechat'] #layout,
 body[data-theme='chatgpt-light'] #layout,
 body[data-theme='chatgpt-dark'] #layout {
   padding-left: 260px;
 }
 
+body[data-theme='wechat'].sidebar-collapsed #layout,
 body[data-theme='chatgpt-light'].sidebar-collapsed #layout,
 body[data-theme='chatgpt-dark'].sidebar-collapsed #layout {
   padding-left: 56px;
 }
 
+body[data-theme='wechat'] .sidebar-close,
+body[data-theme='wechat'] #menu-btn,
 body[data-theme='chatgpt-light'] .sidebar-close,
 body[data-theme='chatgpt-dark'] .sidebar-close,
 body[data-theme='chatgpt-light'] #menu-btn,
@@ -163,6 +169,7 @@ body[data-theme='chatgpt-dark'] #menu-btn {
   display: none;
 }
 
+body[data-theme='wechat'] .sidebar-header,
 body[data-theme='chatgpt-light'] .sidebar-header,
 body[data-theme='chatgpt-dark'] .sidebar-header {
   padding: 12px;
@@ -170,11 +177,13 @@ body[data-theme='chatgpt-dark'] .sidebar-header {
   border-bottom: none;
 }
 
+body[data-theme='wechat'] .sidebar-rail,
 body[data-theme='chatgpt-light'] .sidebar-rail,
 body[data-theme='chatgpt-dark'] .sidebar-rail {
   display: none;
 }
 
+body[data-theme='wechat'] .sidebar-brand,
 body[data-theme='chatgpt-light'] .sidebar-brand,
 body[data-theme='chatgpt-dark'] .sidebar-brand {
   background: var(--theme-option-active-bg);
@@ -182,75 +191,84 @@ body[data-theme='chatgpt-dark'] .sidebar-brand {
   padding: 10px 14px;
 }
 
+body[data-theme='wechat'] .sidebar-title,
 body[data-theme='chatgpt-light'] .sidebar-title,
 body[data-theme='chatgpt-dark'] .sidebar-title {
   font-size: 18px;
   line-height: 1.1;
 }
 
+body[data-theme='wechat'] .sidebar-nav,
 body[data-theme='chatgpt-light'] .sidebar-nav,
 body[data-theme='chatgpt-dark'] .sidebar-nav {
   padding-top: 4px;
 }
 
+body[data-theme='wechat'] .sidebar-nav-item,
 body[data-theme='chatgpt-light'] .sidebar-nav-item,
 body[data-theme='chatgpt-dark'] .sidebar-nav-item {
   border-radius: 10px;
 }
 
+body[data-theme='wechat'] .history-list,
 body[data-theme='chatgpt-light'] .history-list,
 body[data-theme='chatgpt-dark'] .history-list {
   padding: 0;
 }
 
+body[data-theme='wechat'] .history-item,
 body[data-theme='chatgpt-light'] .history-item,
 body[data-theme='chatgpt-dark'] .history-item {
   padding: 10px 12px;
   margin-bottom: 2px;
 }
 
+body[data-theme='wechat'] .sidebar-footer,
 body[data-theme='chatgpt-light'] .sidebar-footer,
 body[data-theme='chatgpt-dark'] .sidebar-footer {
   border-top: 1px solid var(--border-color);
   padding: 12px;
 }
 
-body[data-theme='chatgpt-light'] .sidebar-settings,
-body[data-theme='chatgpt-dark'] .sidebar-settings {
-  padding-top: 10px;
-}
-
+body[data-theme='wechat'] .sidebar-section-title,
 body[data-theme='chatgpt-light'] .sidebar-section-title,
 body[data-theme='chatgpt-dark'] .sidebar-section-title {
   margin-bottom: 10px;
   font-size: 12px;
 }
 
+body[data-theme='wechat'] .sidebar-account,
 body[data-theme='chatgpt-light'] .sidebar-account,
 body[data-theme='chatgpt-dark'] .sidebar-account {
   padding-top: 2px;
 }
 
+body[data-theme='wechat'] .sidebar.collapsed,
 body[data-theme='chatgpt-light'] .sidebar.collapsed,
 body[data-theme='chatgpt-dark'] .sidebar.collapsed {
   width: 56px;
 }
 
+body[data-theme='wechat'] .sidebar-collapse-btn,
 body[data-theme='chatgpt-light'] .sidebar-collapse-btn,
 body[data-theme='chatgpt-dark'] .sidebar-collapse-btn {
   display: inline-flex;
 }
 
+body[data-theme='wechat'] .sidebar.collapsed .sidebar-main,
 body[data-theme='chatgpt-light'] .sidebar.collapsed .sidebar-main,
 body[data-theme='chatgpt-dark'] .sidebar.collapsed .sidebar-main {
   display: none;
 }
 
+body[data-theme='wechat'] .sidebar.collapsed .sidebar-rail,
 body[data-theme='chatgpt-light'] .sidebar.collapsed .sidebar-rail,
 body[data-theme='chatgpt-dark'] .sidebar.collapsed .sidebar-rail {
   display: flex;
 }
 
+body[data-theme='wechat'] .sidebar:not(.collapsed) .sidebar-rail-icon,
+body[data-theme='wechat'] .sidebar:not(.collapsed) .sidebar-rail-avatar,
 body[data-theme='chatgpt-light'] .sidebar:not(.collapsed) .sidebar-rail-icon,
 body[data-theme='chatgpt-light'] .sidebar:not(.collapsed) .sidebar-rail-avatar,
 body[data-theme='chatgpt-dark'] .sidebar:not(.collapsed) .sidebar-rail-icon,
@@ -258,6 +276,7 @@ body[data-theme='chatgpt-dark'] .sidebar:not(.collapsed) .sidebar-rail-avatar {
   display: none;
 }
 
+body[data-theme='wechat'] .sidebar.collapsed .sidebar-rail-toggle,
 body[data-theme='chatgpt-light'] .sidebar.collapsed .sidebar-rail-toggle,
 body[data-theme='chatgpt-dark'] .sidebar.collapsed .sidebar-rail-toggle {
   background: var(--theme-option-active-bg);
@@ -361,6 +380,15 @@ textarea:focus-visible {
   transition: background 0.2s, transform 0.15s ease, box-shadow 0.2s;
 }
 
+.sidebar-rail-toggle .icon,
+.sidebar-rail-icon .icon,
+.sidebar-collapse-btn .icon,
+.settings-trigger .icon {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
 .sidebar-rail-toggle:hover,
 .sidebar-rail-icon:hover {
   background: var(--theme-option-active-bg);
@@ -401,6 +429,13 @@ textarea:focus-visible {
   border-bottom: 1px solid var(--border-color);
 }
 
+.sidebar-header-actions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .sidebar-brand {
   display: flex;
   align-items: center;
@@ -431,21 +466,22 @@ textarea:focus-visible {
 
 .sidebar-collapse-btn {
   display: none;
-  width: 40px;
-  height: 40px;
+  width: 34px;
+  height: 34px;
   border: none;
-  border-radius: 14px;
-  background: var(--theme-option-active-bg);
+  border-radius: 10px;
+  background: transparent;
   color: var(--text-primary);
   font-size: 18px;
   cursor: pointer;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s;
+  transition: background 0.2s, transform 0.15s ease;
 }
 
 .sidebar-collapse-btn:hover {
-  background: rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.05);
+  transform: translateY(-1px);
 }
 
 .sidebar-close:hover {
@@ -570,51 +606,34 @@ textarea:focus-visible {
   letter-spacing: 0.04em;
 }
 
-.sidebar-settings {
-  position: relative;
-  padding: 10px 12px 12px;
-  border-top: 1px solid var(--border-color);
-  background: var(--sidebar-bg);
-}
-
-.settings-trigger-row {
-  display: flex;
-  justify-content: flex-end;
-}
-
 .settings-trigger {
   width: 34px;
   height: 34px;
-  border: 1px solid var(--border-color);
+  border: none;
   border-radius: 10px;
-  background: var(--theme-option-bg);
+  background: transparent;
   color: var(--text-primary);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s, border-color 0.2s, transform 0.15s ease, box-shadow 0.2s;
+  transition: background 0.2s, transform 0.15s ease;
 }
 
 .settings-trigger .icon {
-  width: 18px;
-  height: 18px;
-  display: block;
   color: currentColor;
 }
 
 .settings-trigger:hover,
 .settings-trigger.active {
-  background: var(--theme-option-active-bg);
-  border-color: var(--theme-option-active-border);
+  background: rgba(0, 0, 0, 0.05);
   transform: translateY(-1px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
 }
 
 .settings-popover {
   position: absolute;
-  right: 12px;
-  bottom: calc(100% - 2px);
+  top: calc(100% + 10px);
+  right: 0;
   width: 216px;
   padding: 12px;
   border: 1px solid var(--border-color);
@@ -1263,18 +1282,26 @@ body[data-theme='chatgpt-dark'] #send-btn::before {
   height: 18px;
   object-fit: contain;
   flex-shrink: 0;
+  border-radius: 6px;
+  padding: 2px;
+}
+
+body[data-theme='chatgpt-dark'] .ai-frame-header-icon {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+body[data-theme='chatgpt-dark'] .ai-frame-wrapper:first-child .ai-frame-header-icon {
+  background: rgba(255, 255, 255, 0.94);
+  filter: invert(1) brightness(1.75) contrast(1.25);
 }
 
 .ai-frame-header-text {
   display: inline-block;
+  color: var(--text-secondary);
 }
 
-.ai-frame-wrapper:first-child .ai-frame-header {
-  color: var(--accent-chatgpt);
-}
-
-.ai-frame-wrapper:last-child .ai-frame-header {
-  color: var(--accent-gemini);
+body[data-theme='chatgpt-dark'] .ai-frame-header-text {
+  color: #f3f4f6;
 }
 
 .ai-frame-wrapper iframe {

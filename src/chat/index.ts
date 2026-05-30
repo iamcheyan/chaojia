@@ -62,7 +62,6 @@ const closeSidebarBtn = document.getElementById('close-sidebar')!
 const historyListEl = document.getElementById('history-list')!
 const newChatBtn = document.getElementById('new-chat')!
 const sidebarNavSearchBtn = document.getElementById('sidebar-nav-search') as HTMLButtonElement
-const sidebarNavSettingsBtn = document.getElementById('sidebar-nav-settings') as HTMLButtonElement
 const sidebarSectionRecentEl = document.getElementById('sidebar-section-recent') as HTMLDivElement
 const settingsToggleBtn = document.getElementById('settings-toggle') as HTMLButtonElement
 const settingsPopoverEl = document.getElementById('settings-popover') as HTMLDivElement
@@ -466,7 +465,6 @@ function updateStaticTexts(): void {
   document.title = t('chatTitle')
   newChatBtn.textContent = `+ ${t('newChat')}`
   sidebarNavSearchBtn.textContent = t('searchChat')
-  sidebarNavSettingsBtn.textContent = t('settings')
   sidebarSectionRecentEl.textContent = t('recent')
   settingsThemeTitleEl.textContent = t('theme')
   settingsLanguageTitleEl.textContent = t('language')
@@ -742,25 +740,12 @@ function renderThemeOptions(): void {
 }
 
 function applyTheme(theme: ThemeMode): void {
-  const previousTheme = currentTheme
-  const wasSidebarOpen = sidebarEl.classList.contains('open')
   const wasSidebarCollapsed = isSidebarCollapsed
-  const wasSidebarVisible = previousTheme === 'wechat' ? wasSidebarOpen : !wasSidebarCollapsed
   currentTheme = theme
   document.body.dataset.theme = theme
 
   setSidebarCollapsed(wasSidebarCollapsed)
-
-  if (theme === 'wechat') {
-    if (wasSidebarVisible) {
-      sidebarEl.classList.add('open')
-      overlayEl.classList.add('open')
-    } else {
-      closeSidebar()
-    }
-  } else {
-    closeSidebar()
-  }
+  closeSidebar()
   renderThemeOptions()
 
   try {
@@ -1131,7 +1116,6 @@ sidebarRailThemeBtn.addEventListener('click', () => {
   toggleSettingsPopover(true)
 })
 sidebarNavSearchBtn.addEventListener('click', openSidebar)
-sidebarNavSettingsBtn.addEventListener('click', () => toggleSettingsPopover())
 settingsToggleBtn.addEventListener('click', () => toggleSettingsPopover())
 closeSidebarBtn.addEventListener('click', closeSidebar)
 overlayEl.addEventListener('click', closeSidebar)
@@ -1161,7 +1145,7 @@ languageOptionsEl.addEventListener('click', (event) => {
 })
 document.addEventListener('click', (event) => {
   const target = event.target as Node
-  if (settingsPopoverEl.contains(target) || settingsToggleBtn.contains(target) || sidebarNavSettingsBtn.contains(target)) return
+  if (settingsPopoverEl.contains(target) || settingsToggleBtn.contains(target)) return
   toggleSettingsPopover(false)
 })
 
