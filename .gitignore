@@ -1,3 +1,4 @@
 node_modules/
 .dbg/
 .DS_Store
+dist/_metadata/

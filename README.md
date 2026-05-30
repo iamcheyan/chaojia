@@ -1,5 +1,7 @@
 # MultiChat
 
+![MultiChat Screenshot](./image.png)
+
 ## 中文
 
 `MultiChat` 是一个多 AI 聚合聊天扩展。
