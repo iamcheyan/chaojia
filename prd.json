@@ -53,8 +53,8 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Adapter already implemented with full selector support, manifest permissions, and DNR frame rules"
     },
     {
       "id": "US-004",

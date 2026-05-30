@@ -29,3 +29,18 @@ Started: 2026-05-30 16:08:03
   - Claude messages use `[data-is-streaming]` attribute and `.font-claude-message` class
   - HTML serialization with image extraction is needed for Claude responses
 ---
+
+## 2026-05-31 10:15 - US-003
+- DeepSeek adapter already fully implemented in `src/content/sites/deepseek.ts`
+- Includes: textarea/contenteditable input selectors, send button selectors (multilingual), response container detection, stop generating, start new chat
+- Handles streaming detection and HTML serialization of DeepSeek messages
+- `manifest.json` already has `chat.deepseek.com` host permissions and content_scripts match
+- DNR frame rules already include DeepSeek iframe support (rule id 8)
+- `getActiveChatSiteAdapter()` already routes `chat.deepseek.com` to `createDeepSeekAdapter`
+- Typecheck passes
+- Files: `src/content/sites/deepseek.ts`, `public/manifest.json`, `public/frame-rules.json`
+- **Learnings for future iterations:**
+  - DeepSeek uses textarea with placeholder for input (similar to ChatGPT pattern)
+  - Response containers use `.markdown`, `.prose` classes (common pattern across Chinese AI sites)
+  - Selectors include multilingual support (Chinese, English, Japanese)
+---

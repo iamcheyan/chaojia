@@ -1,6 +1,8 @@
 import { createChatGptAdapter } from './chatgpt'
 import { createGeminiAdapter } from './gemini'
 import { createClaudeAdapter } from './claude'
+import { createDeepSeekAdapter } from './deepseek'
+import { createKimiAdapter } from './kimi'
 import { createPlaceholderAdapter } from './placeholder'
 import type { ChatSiteAdapter } from './types'
 
@@ -22,11 +24,11 @@ const adapterMap: Record<string, () => ChatSiteAdapter> = {
   // Anthropic Claude
   'claude.ai': createClaudeAdapter,
 
-  // DeepSeek (placeholder - full adapter in US-003)
-  'chat.deepseek.com': () => createPlaceholderAdapter('deepseek', 'chat.deepseek.com'),
+  // DeepSeek
+  'chat.deepseek.com': createDeepSeekAdapter,
 
-  // Kimi (placeholder - full adapter in US-004)
-  'kimi.moonshot.cn': () => createPlaceholderAdapter('kimi', 'kimi.moonshot.cn'),
+  // Kimi
+  'kimi.moonshot.cn': createKimiAdapter,
 
   // 豆包 (placeholder - full adapter in US-005)
   'www.doubao.com': () => createPlaceholderAdapter('doubao', 'www.doubao.com'),
