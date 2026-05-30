@@ -328,41 +328,6 @@ function removeEmptyImageWrappers(container: HTMLElement): void {
   }
 }
 
-function promoteWrappedImageGallery(container: HTMLElement): void {
-  const children = Array.from(container.children) as HTMLElement[]
-  for (const child of children) {
-    if (child.classList.contains('message-image-row') || child.classList.contains('message-image-card')) continue
-
-    const images = Array.from(child.querySelectorAll<HTMLImageElement>('img'))
-      .filter(image => !image.closest('.message-image-row, .message-image-card'))
-
-    if (images.length >= 2) {
-      const clone = child.cloneNode(true) as HTMLElement
-      for (const image of Array.from(clone.querySelectorAll('img'))) {
-        image.remove()
-      }
-      const remainingText = (clone.textContent ?? '').trim()
-
-      if (remainingText) {
-        const rowEl = document.createElement('div')
-        rowEl.className = 'message-image-row'
-        child.insertBefore(rowEl, child.firstChild)
-
-        for (const image of images) {
-          const cardEl = document.createElement('div')
-          cardEl.className = 'message-image-card'
-          rowEl.appendChild(cardEl)
-          cardEl.appendChild(image)
-        }
-
-        removeEmptyImageWrappers(child)
-      }
-    }
-
-    promoteWrappedImageGallery(child)
-  }
-}
-
 function mergeAdjacentImageRows(container: HTMLElement): void {
   const children = Array.from(container.children) as HTMLElement[]
   let currentRow: HTMLElement | null = null
@@ -383,6 +348,40 @@ function mergeAdjacentImageRows(container: HTMLElement): void {
 
     currentRow = null
     mergeAdjacentImageRows(child)
+  }
+}
+
+function markInlineImageWrappers(contentEl: HTMLElement): void {
+  const getWrapper = (image: HTMLImageElement): HTMLElement => {
+    let current: HTMLElement = image
+
+    while (current.parentElement && current.parentElement !== contentEl) {
+      const parent = current.parentElement
+      if (parent.classList.contains('message-image-row') || parent.classList.contains('message-image-card')) break
+
+      const hasTextNode = Array.from(parent.childNodes).some(node =>
+        node.nodeType === Node.TEXT_NODE && (node.textContent ?? '').trim().length > 0,
+      )
+
+      if (hasTextNode) break
+
+      const otherChildren = Array.from(parent.children).filter(child => child !== current)
+      if (otherChildren.length > 0) break
+
+      current = parent
+    }
+
+    return current
+  }
+
+  for (const image of Array.from(contentEl.querySelectorAll<HTMLImageElement>('img'))) {
+    if (image.closest('.message-image-card')) continue
+
+    const wrapper = getWrapper(image)
+    if (wrapper === contentEl) continue
+
+    wrapper.classList.add('message-inline-image')
+    image.classList.add('message-inline-image-element')
   }
 }
 
@@ -453,9 +452,10 @@ function layoutMessageImagesInContainer(container: HTMLElement): void {
 }
 
 function layoutMessageImages(contentEl: HTMLElement): void {
-  promoteWrappedImageGallery(contentEl)
   layoutMessageImagesInContainer(contentEl)
   mergeAdjacentImageRows(contentEl)
+  removeEmptyImageWrappers(contentEl)
+  markInlineImageWrappers(contentEl)
 }
 
 function highlightCodeBlocks(contentEl: HTMLElement): void {

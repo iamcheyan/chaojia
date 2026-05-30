@@ -1799,6 +1799,30 @@ body[data-theme='chatgpt-dark'] .ai-frame-header-text {
   border-radius: 0;
 }
 
+.message-inline-image {
+  display: inline-flex;
+  width: 140px;
+  max-width: 100%;
+  margin: 12px 8px 0 0;
+  vertical-align: top;
+  overflow: hidden;
+  border-radius: 0;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  box-shadow: none;
+}
+
+.message-inline-image-element,
+.message-inline-image img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+  border-radius: 0;
+}
+
 .markdown-body img {
   display: block;
   max-width: 100%;
