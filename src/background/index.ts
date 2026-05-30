@@ -1,4 +1,4 @@
-// MultiChat Background Service Worker
+// aigumi Background Service Worker
 // Routes messages between chat page and content scripts in AI site iframes
 export {}
 

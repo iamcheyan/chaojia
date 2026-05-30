@@ -1,4 +1,4 @@
-# MultiChat 设计文档
+# aigumi 设计文档
 
 ## 项目目标
 

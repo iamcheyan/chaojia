@@ -49,6 +49,7 @@ let chatHistories: ChatHistory[] = []
 let messages: ChatMessage[] = []
 
 const messagesEl = document.getElementById('messages')!
+const composerEl = document.getElementById('composer') as HTMLDivElement
 const inputEl = document.getElementById('input') as HTMLTextAreaElement
 const sendBtn = document.getElementById('send-btn') as HTMLButtonElement
 const statusChatgpt = document.getElementById('status-chatgpt')!
@@ -143,7 +144,7 @@ const TRANSLATIONS: Record<LanguageMode, Record<string, string>> = {
     exportEmpty: '当前没有可下载的聊天内容',
     exportingChat: '正在打包对话...',
     exportFailed: '下载失败，请稍后重试',
-    chatTitle: 'MultiChat - AI 聊天聚合器',
+    chatTitle: 'aigumi - AI 聊天聚合器',
   },
   en: {
     newChat: 'New Chat',
@@ -182,7 +183,7 @@ const TRANSLATIONS: Record<LanguageMode, Record<string, string>> = {
     exportEmpty: 'No chat content to export',
     exportingChat: 'Preparing chat export...',
     exportFailed: 'Export failed. Please try again.',
-    chatTitle: 'MultiChat - AI Chat Aggregator',
+    chatTitle: 'aigumi - AI Chat Aggregator',
   },
   ja: {
     newChat: '新しいチャット',
@@ -221,7 +222,7 @@ const TRANSLATIONS: Record<LanguageMode, Record<string, string>> = {
     exportEmpty: 'ダウンロードできるチャット内容がありません',
     exportingChat: 'チャットを書き出しています...',
     exportFailed: 'ダウンロードに失敗しました。もう一度お試しください。',
-    chatTitle: 'MultiChat - AI チャットアグリゲーター',
+    chatTitle: 'aigumi - AI チャットアグリゲーター',
   },
 }
 
@@ -733,6 +734,20 @@ function setExportButtonState(exporting: boolean): void {
   exportChatBtn.classList.toggle('is-loading', exporting)
   exportChatBtn.title = exporting ? t('exportingChat') : t('downloadChat')
   exportChatBtn.setAttribute('aria-label', exporting ? t('exportingChat') : t('downloadChat'))
+}
+
+function syncInputHeight(): void {
+  inputEl.style.removeProperty('height')
+  const computedStyle = window.getComputedStyle(inputEl)
+  const maxHeight = Number.parseFloat(computedStyle.maxHeight || '0')
+  const minHeight = Number.parseFloat(computedStyle.minHeight || '0')
+  const nextHeight = inputEl.scrollHeight
+  const singleLineThreshold = minHeight + 10
+  const isSingleLine = inputEl.value.length === 0 || nextHeight <= singleLineThreshold
+  inputEl.classList.toggle('input-single-line', isSingleLine)
+  composerEl.classList.toggle('composer-single-line', isSingleLine)
+
+  inputEl.style.overflowY = maxHeight > 0 && nextHeight > maxHeight ? 'auto' : 'hidden'
 }
 
 function convertHtmlToMarkdown(
@@ -1871,6 +1886,7 @@ function sendMessage(): void {
 
   renderMessages()
   inputEl.value = ''
+  syncInputHeight()
   
   // 保存初始消息
   saveCurrentChat()
@@ -1954,6 +1970,9 @@ inputEl.addEventListener('keydown', (e) => {
     sendMessage()
   }
 })
+inputEl.addEventListener('input', syncInputHeight)
+inputEl.rows = 1
+syncInputHeight()
 
 menuBtn.addEventListener('click', openSidebar)
 sidebarCollapseBtn.addEventListener('click', () => setSidebarCollapsed(true))
