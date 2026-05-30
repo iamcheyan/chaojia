@@ -643,10 +643,301 @@
     };
   }
 
+  // src/content/sites/claude.ts
+  var EDITOR_SELECTORS3 = 'div.ProseMirror[contenteditable="true"], div[contenteditable="true"][role="textbox"]';
+  var SEND_BUTTON_SELECTORS3 = 'button[aria-label*="Send"], button[aria-label*="\u53D1\u9001"], button[aria-label*="\u9001\u4FE1"], button[aria-label*="\u9001\u308B"]';
+  var NEW_CHAT_SELECTORS3 = 'a[href="/new"], button[aria-label*="New chat"], button[aria-label*="\u65B0\u5BF9\u8BDD"], button[aria-label*="\u65B0\u3057\u3044\u30C1\u30E3\u30C3\u30C8"]';
+  var RESPONSE_SELECTORS3 = '[data-is-streaming], .font-claude-message, [data-testid="message"]';
+  var STOP_SELECTORS = 'button[aria-label*="Stop"], button[aria-label*="\u505C\u6B62"], button[aria-label*="\u4E2D\u6B62"], button[aria-label*="\u30B9\u30C8\u30C3\u30D7"]';
+  var ACTIVITY_INDICATORS2 = '.result-streaming, [data-is-streaming="true"], .animate-pulse';
+  var SKIP_TAGS3 = /* @__PURE__ */ new Set(["SCRIPT", "STYLE", "SVG"]);
+  var CONTENT_ROOT_SELECTORS3 = [
+    ".font-claude-message",
+    ".markdown",
+    ".prose",
+    '[data-testid="message"] .markdown'
+  ];
+  function escapeHtml3(text) {
+    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  function sanitizeHref3(href) {
+    if (!href) return "";
+    const normalizedHref = href.trim();
+    return /^https?:\/\//i.test(normalizedHref) ? normalizedHref : "";
+  }
+  function sanitizeImageSrc3(src) {
+    if (!src) return "";
+    const normalizedSrc = src.trim();
+    return /^(https?:\/\/|data:image\/|blob:)/i.test(normalizedSrc) ? normalizedSrc : "";
+  }
+  function extractUrlsFromSrcset3(srcset) {
+    if (!srcset) return [];
+    return srcset.split(",").map((part) => sanitizeImageSrc3(part.trim().split(/\s+/)[0] ?? "")).filter(Boolean);
+  }
+  function extractUrlsFromStyle3(styleValue) {
+    if (!styleValue) return [];
+    const matches = Array.from(styleValue.matchAll(/url\((['"]?)(.*?)\1\)/g));
+    return matches.map((match) => sanitizeImageSrc3(match[2] ?? "")).filter(Boolean);
+  }
+  function getNodeTextLength2(node) {
+    return (node.textContent ?? "").replace(/\s+/g, " ").trim().length;
+  }
+  function getContentRoot3(container) {
+    const candidates = [];
+    for (const selector of CONTENT_ROOT_SELECTORS3) {
+      if (container instanceof HTMLElement && container.matches(selector)) {
+        candidates.push(container);
+      }
+      candidates.push(...container.querySelectorAll(selector));
+    }
+    const uniqueCandidates = Array.from(new Set(candidates)).filter((node) => getNodeTextLength2(node) > 0).sort((a, b) => getNodeTextLength2(b) - getNodeTextLength2(a));
+    return uniqueCandidates[0] ?? container;
+  }
+  function collectContainerImageHtml2(container, root) {
+    const seen = /* @__PURE__ */ new Set();
+    const parts = [];
+    const addImage = (src, alt = "") => {
+      const normalizedSrc = sanitizeImageSrc3(src);
+      if (!normalizedSrc || seen.has(normalizedSrc)) return;
+      seen.add(normalizedSrc);
+      parts.push(`<img src="${escapeHtml3(normalizedSrc)}" alt="${escapeHtml3(alt)}">`);
+    };
+    for (const img of Array.from(container.querySelectorAll("img"))) {
+      if (root.contains(img)) continue;
+      addImage(img.currentSrc || img.getAttribute("src") || "", img.getAttribute("alt") ?? "");
+      for (const src of extractUrlsFromSrcset3(img.getAttribute("srcset"))) {
+        addImage(src, img.getAttribute("alt") ?? "");
+      }
+    }
+    for (const source of Array.from(container.querySelectorAll("source"))) {
+      if (root.contains(source)) continue;
+      for (const src of extractUrlsFromSrcset3(source.getAttribute("srcset"))) {
+        addImage(src);
+      }
+    }
+    const imageDataAttrs = ["data-src", "data-image-src", "data-image-url", "data-full-image-url", "data-thumbnail-url"];
+    for (const el of Array.from(container.querySelectorAll("*"))) {
+      if (root.contains(el)) continue;
+      for (const attr of imageDataAttrs) {
+        const value = el.getAttribute(attr);
+        if (value) addImage(value, el.getAttribute("aria-label") ?? "");
+      }
+      for (const src of extractUrlsFromStyle3(el.getAttribute("style"))) {
+        addImage(src, el.getAttribute("aria-label") ?? "");
+      }
+    }
+    return parts.join("");
+  }
+  function serializeNode3(node) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return escapeHtml3(node.textContent ?? "");
+    }
+    if (!(node instanceof HTMLElement)) return "";
+    if (SKIP_TAGS3.has(node.tagName)) return "";
+    const inner = Array.from(node.childNodes).map(serializeNode3).join("");
+    switch (node.tagName) {
+      case "BR":
+        return "<br>";
+      case "P":
+        return `<p>${inner}</p>`;
+      case "DIV":
+      case "SECTION":
+      case "ARTICLE":
+        return inner.trim() ? `<div>${inner}</div>` : "";
+      case "SPAN":
+        return inner;
+      case "STRONG":
+      case "B":
+        return `<strong>${inner}</strong>`;
+      case "EM":
+      case "I":
+        return `<em>${inner}</em>`;
+      case "CODE":
+        return node.closest("pre") ? inner : `<code>${inner}</code>`;
+      case "PRE": {
+        const code = node.querySelector("code");
+        const codeText = escapeHtml3(code?.textContent ?? node.textContent ?? "");
+        return `<pre><code>${codeText}</code></pre>`;
+      }
+      case "A": {
+        const href = sanitizeHref3(node.getAttribute("href"));
+        return href ? `<a href="${escapeHtml3(href)}" target="_blank" rel="noreferrer noopener">${inner}</a>` : inner;
+      }
+      case "BUTTON":
+        return inner;
+      case "IMG": {
+        const src = sanitizeImageSrc3(node.currentSrc || node.getAttribute("src"));
+        if (!src) return "";
+        const alt = escapeHtml3(node.getAttribute("alt") ?? "");
+        return `<img src="${escapeHtml3(src)}" alt="${alt}">`;
+      }
+      case "UL":
+        return `<ul>${inner}</ul>`;
+      case "OL":
+        return `<ol>${inner}</ol>`;
+      case "LI":
+        return `<li>${inner}</li>`;
+      case "BLOCKQUOTE":
+        return `<blockquote>${inner}</blockquote>`;
+      case "H1":
+      case "H2":
+      case "H3":
+      case "H4":
+      case "H5":
+      case "H6":
+        return `<${node.tagName.toLowerCase()}>${inner}</${node.tagName.toLowerCase()}>`;
+      case "HR":
+        return "<hr>";
+      case "TABLE":
+      case "THEAD":
+      case "TBODY":
+      case "TR":
+      case "TH":
+      case "TD":
+        return `<${node.tagName.toLowerCase()}>${inner}</${node.tagName.toLowerCase()}>`;
+      default:
+        return inner;
+    }
+  }
+  function normalizeHtml3(html) {
+    return html.replace(/(?:<div>\s*<\/div>|\s+\n)/g, "").trim();
+  }
+  function captureReply3(container) {
+    const root = getContentRoot3(container);
+    const html = normalizeHtml3(`${serializeNode3(root)}${collectContainerImageHtml2(container, root)}`);
+    const fallbackText = (container.textContent ?? "").replace(/\s+/g, " ").trim();
+    return {
+      content: html || escapeHtml3(fallbackText),
+      format: "html"
+    };
+  }
+  function createClaudeAdapter() {
+    return {
+      id: "claude",
+      getResponseContainers() {
+        const candidates = [...document.querySelectorAll(RESPONSE_SELECTORS3)];
+        return candidates.filter((el) => {
+          if (el.querySelector(EDITOR_SELECTORS3)) return false;
+          return getNodeTextLength2(el) > 0;
+        });
+      },
+      getAllAssistantReplies() {
+        const containers = this.getResponseContainers();
+        return containers.map((c) => captureReply3(c)).filter((reply) => reply.content.length > 0);
+      },
+      readResponse(node) {
+        return captureReply3(node);
+      },
+      isGenerating() {
+        const stopBtn = document.querySelector(STOP_SELECTORS);
+        if (stopBtn) return true;
+        return document.querySelector(ACTIVITY_INDICATORS2) !== null;
+      },
+      async stopGenerating() {
+        const stopBtn = document.querySelector(STOP_SELECTORS);
+        if (!stopBtn) return false;
+        if (!isClickableButton(stopBtn)) return false;
+        stopBtn.click();
+        return true;
+      },
+      async startNewChat() {
+        const candidates = [...document.querySelectorAll(NEW_CHAT_SELECTORS3)];
+        const newChatBtn = candidates.find((el) => {
+          const text = (el.textContent ?? "").trim();
+          const label = el.getAttribute("aria-label") ?? "";
+          const href = el instanceof HTMLAnchorElement ? el.href : "";
+          return /new chat|新对话|新しいチャット/i.test(text) || /new chat|新对话|新しいチャット/i.test(label) || /\/new$/i.test(href);
+        });
+        if (newChatBtn && isClickableButton(newChatBtn)) {
+          newChatBtn.click();
+          return true;
+        }
+        location.href = "https://claude.ai/new";
+        return true;
+      },
+      async fillAndSend(content, autoSend = true) {
+        const editor = await waitForElement(EDITOR_SELECTORS3, 1e4);
+        setContentEditableText(editor, content);
+        if (!autoSend) return;
+        const sendBtn = await waitForClickableButton(SEND_BUTTON_SELECTORS3, 1e4, "Send button not found or not clickable");
+        sendBtn.click();
+      }
+    };
+  }
+
+  // src/content/sites/placeholder.ts
+  function createPlaceholderAdapter(id, hostname) {
+    const warn = (method) => {
+      console.warn(`[MultiChat] ${id} adapter: ${method} not yet implemented (${hostname})`);
+    };
+    return {
+      id,
+      getResponseContainers() {
+        warn("getResponseContainers");
+        return [];
+      },
+      getAllAssistantReplies() {
+        warn("getAllAssistantReplies");
+        return [];
+      },
+      readResponse(_node) {
+        warn("readResponse");
+        return { content: "", format: "text" };
+      },
+      isGenerating() {
+        return false;
+      },
+      async stopGenerating() {
+        warn("stopGenerating");
+        return false;
+      },
+      async startNewChat() {
+        warn("startNewChat");
+        return false;
+      },
+      async fillAndSend(_content, _autoSend) {
+        warn("fillAndSend");
+      }
+    };
+  }
+
   // src/content/sites/index.ts
+  var adapterMap = {
+    // OpenAI ChatGPT
+    "chatgpt.com": createChatGptAdapter,
+    "chat.openai.com": createChatGptAdapter,
+    // Google Gemini
+    "gemini.google.com": createGeminiAdapter,
+    // Anthropic Claude
+    "claude.ai": createClaudeAdapter,
+    // DeepSeek (placeholder - full adapter in US-003)
+    "chat.deepseek.com": () => createPlaceholderAdapter("deepseek", "chat.deepseek.com"),
+    // Kimi (placeholder - full adapter in US-004)
+    "kimi.moonshot.cn": () => createPlaceholderAdapter("kimi", "kimi.moonshot.cn"),
+    // 豆包 (placeholder - full adapter in US-005)
+    "www.doubao.com": () => createPlaceholderAdapter("doubao", "www.doubao.com"),
+    "doubao.com": () => createPlaceholderAdapter("doubao", "doubao.com"),
+    // 文心一言 (placeholder - full adapter in US-006)
+    "yiyan.baidu.com": () => createPlaceholderAdapter("yiyan", "yiyan.baidu.com"),
+    // 通义千问 (placeholder - full adapter in US-007)
+    "tongyi.aliyun.com": () => createPlaceholderAdapter("tongyi", "tongyi.aliyun.com"),
+    // Perplexity (placeholder - full adapter in US-008)
+    "www.perplexity.ai": () => createPlaceholderAdapter("perplexity", "www.perplexity.ai"),
+    "perplexity.ai": () => createPlaceholderAdapter("perplexity", "perplexity.ai")
+  };
+  function getSupportedHostnames() {
+    return Object.keys(adapterMap);
+  }
   function getActiveChatSiteAdapter() {
-    if (location.hostname === "chatgpt.com" || location.hostname === "chat.openai.com") return createChatGptAdapter();
-    return createGeminiAdapter();
+    const hostname = location.hostname;
+    const adapterFactory = adapterMap[hostname];
+    if (adapterFactory) {
+      console.log(`[MultiChat] Using adapter for: ${hostname}`);
+      return adapterFactory();
+    }
+    throw new Error(
+      `[MultiChat] No adapter found for hostname: ${hostname}. Supported hostnames: ${getSupportedHostnames().join(", ")}`
+    );
   }
 
   // src/content/replyObserver.ts
@@ -801,69 +1092,76 @@
     window.__CHAOJIA_LOADED__ = true;
     if (window.parent !== window) {
       injectEmbeddedScrollbarStyles();
-      const siteAdapter = getActiveChatSiteAdapter();
-      const replyObserver = createReplyObserver({
-        siteAdapter,
-        onReply(reply, isFinal) {
-          chrome.runtime.sendMessage({
-            type: "ROLE_REPLY",
-            site: siteAdapter.id,
-            content: reply.content,
-            contentFormat: reply.format,
-            pageUrl: location.href,
-            isFinal
-          });
-        },
-        onStatusChange(status, detail) {
-          chrome.runtime.sendMessage({
-            type: "ROLE_STATUS",
-            site: siteAdapter.id,
-            status,
-            detail,
-            pageUrl: location.href
-          });
-        }
-      });
-      chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-        if (message.type === "FILL_AND_SEND") {
-          if (Array.isArray(message.activeSites) && !message.activeSites.includes(siteAdapter.id)) {
-            sendResponse({ ok: true, skipped: true });
-            return false;
-          }
-          const { content, autoSend } = message;
-          replyObserver.captureBaseline();
-          replyObserver.startPolling();
-          siteAdapter.fillAndSend(content, autoSend).catch((err) => {
-            console.error("[MultiChat] fillAndSend failed:", err);
-            replyObserver.stop();
+      let siteAdapter;
+      try {
+        siteAdapter = getActiveChatSiteAdapter();
+      } catch (err) {
+        console.log("[MultiChat] This site is not supported, content script inactive:", err.message);
+      }
+      if (siteAdapter) {
+        const replyObserver = createReplyObserver({
+          siteAdapter,
+          onReply(reply, isFinal) {
             chrome.runtime.sendMessage({
-              type: "ROLE_STATUS",
+              type: "ROLE_REPLY",
               site: siteAdapter.id,
-              status: "error",
-              detail: err.message
+              content: reply.content,
+              contentFormat: reply.format,
+              pageUrl: location.href,
+              isFinal
             });
-          });
-          sendResponse({ ok: true });
-          return true;
-        }
-        if (message.type === "START_NEW_CHAT") {
-          if (Array.isArray(message.activeSites) && !message.activeSites.includes(siteAdapter.id)) {
-            sendResponse({ ok: true, skipped: true });
-            return false;
-          }
-          siteAdapter.startNewChat().then((ok) => sendResponse({ ok })).catch((err) => {
+          },
+          onStatusChange(status, detail) {
             chrome.runtime.sendMessage({
               type: "ROLE_STATUS",
               site: siteAdapter.id,
-              status: "error",
-              detail: err.message,
+              status,
+              detail,
               pageUrl: location.href
             });
-            sendResponse({ ok: false, error: err.message });
-          });
-          return true;
-        }
-      });
+          }
+        });
+        chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+          if (message.type === "FILL_AND_SEND") {
+            if (Array.isArray(message.activeSites) && !message.activeSites.includes(siteAdapter.id)) {
+              sendResponse({ ok: true, skipped: true });
+              return false;
+            }
+            const { content, autoSend } = message;
+            replyObserver.captureBaseline();
+            replyObserver.startPolling();
+            siteAdapter.fillAndSend(content, autoSend).catch((err) => {
+              console.error("[aigumi] fillAndSend failed:", err);
+              replyObserver.stop();
+              chrome.runtime.sendMessage({
+                type: "ROLE_STATUS",
+                site: siteAdapter.id,
+                status: "error",
+                detail: err.message
+              });
+            });
+            sendResponse({ ok: true });
+            return true;
+          }
+          if (message.type === "START_NEW_CHAT") {
+            if (Array.isArray(message.activeSites) && !message.activeSites.includes(siteAdapter.id)) {
+              sendResponse({ ok: true, skipped: true });
+              return false;
+            }
+            siteAdapter.startNewChat().then((ok) => sendResponse({ ok })).catch((err) => {
+              chrome.runtime.sendMessage({
+                type: "ROLE_STATUS",
+                site: siteAdapter.id,
+                status: "error",
+                detail: err.message,
+                pageUrl: location.href
+              });
+              sendResponse({ ok: false, error: err.message });
+            });
+            return true;
+          }
+        });
+      }
     }
   }
 })();
