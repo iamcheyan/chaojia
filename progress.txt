@@ -1,3 +1,16 @@
 # Ralph Progress Log
 Started: 2026-05-30 16:08:03
 ---
+
+## 2026-05-30 16:35 - US-001
+- Updated `getActiveChatSiteAdapter()` with hostname-based adapter routing in `src/content/sites/index.ts`
+- Added `adapterMap` mapping all new AI platforms to their adapters (placeholder for now)
+- Created `placeholder.ts` adapter factory for unimplemented platforms
+- Added helper exports: `getSupportedHostnames()`, `isSupportedHostname()`
+- Error handling: throws descriptive Error when hostname not found
+- Files changed: `src/content/sites/index.ts`, `src/content/sites/placeholder.ts`
+- **Learnings for future iterations:**
+  - The adapter pattern uses factory functions (`() => ChatSiteAdapter`) in the map
+  - Placeholder adapters log warnings on method calls - will be replaced with real implementations in US-002 through US-008
+  - `ChatSiteAdapter` interface requires: id, getResponseContainers, getAllAssistantReplies, readResponse, isGenerating, stopGenerating, startNewChat, fillAndSend
+---
