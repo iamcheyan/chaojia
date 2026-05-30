@@ -61,7 +61,9 @@ const menuBtn = document.getElementById('menu-btn')!
 const closeSidebarBtn = document.getElementById('close-sidebar')!
 const historyListEl = document.getElementById('history-list')!
 const newChatBtn = document.getElementById('new-chat')!
+const newChatLabelEl = document.getElementById('new-chat-label') as HTMLSpanElement
 const sidebarNavSearchBtn = document.getElementById('sidebar-nav-search') as HTMLButtonElement
+const sidebarNavSearchLabelEl = document.getElementById('sidebar-nav-search-label') as HTMLSpanElement
 const sidebarSectionRecentEl = document.getElementById('sidebar-section-recent') as HTMLDivElement
 const settingsToggleBtn = document.getElementById('settings-toggle') as HTMLButtonElement
 const settingsPopoverEl = document.getElementById('settings-popover') as HTMLDivElement
@@ -69,6 +71,12 @@ const settingsThemeTitleEl = document.getElementById('settings-theme-title') as 
 const settingsLanguageTitleEl = document.getElementById('settings-language-title') as HTMLDivElement
 const themeOptionsEl = document.getElementById('theme-options') as HTMLDivElement
 const languageOptionsEl = document.getElementById('language-options') as HTMLDivElement
+const searchOverlayEl = document.getElementById('search-overlay') as HTMLDivElement
+const searchInputEl = document.getElementById('search-input') as HTMLInputElement
+const searchCloseBtn = document.getElementById('search-close-btn') as HTMLButtonElement
+const searchNewChatBtn = document.getElementById('search-new-chat-btn') as HTMLButtonElement
+const searchNewChatLabelEl = document.getElementById('search-new-chat-label') as HTMLSpanElement
+const searchHistoryGroupsEl = document.getElementById('search-history-groups') as HTMLDivElement
 const layoutEl = document.getElementById('layout') as HTMLDivElement
 const chatPanelEl = document.getElementById('chat-panel') as HTMLDivElement
 const aiPanelEl = document.getElementById('ai-panel') as HTMLDivElement
@@ -102,11 +110,15 @@ const TRANSLATIONS: Record<LanguageMode, Record<string, string>> = {
     statusGenerating: '生成中',
     statusError: '错误',
     statusOffline: '未连接',
+    today: '今天',
     yesterday: '昨天',
     openSidebar: '打开侧边栏',
     collapseSidebar: '折叠侧边栏',
     closeSidebar: '关闭侧边栏',
     openSettings: '打开设置',
+    closeSearch: '关闭搜索',
+    searchPlaceholder: '搜索聊天...',
+    noSearchResults: '没有找到相关历史记录',
     chatTitle: 'ChaoJia - AI 聊天聚合器',
   },
   en: {
@@ -128,11 +140,15 @@ const TRANSLATIONS: Record<LanguageMode, Record<string, string>> = {
     statusGenerating: 'Generating',
     statusError: 'Error',
     statusOffline: 'Offline',
+    today: 'Today',
     yesterday: 'Yesterday',
     openSidebar: 'Open sidebar',
     collapseSidebar: 'Collapse sidebar',
     closeSidebar: 'Close sidebar',
     openSettings: 'Open settings',
+    closeSearch: 'Close search',
+    searchPlaceholder: 'Search chats...',
+    noSearchResults: 'No matching chat history',
     chatTitle: 'ChaoJia - AI Chat Aggregator',
   },
   ja: {
@@ -154,11 +170,15 @@ const TRANSLATIONS: Record<LanguageMode, Record<string, string>> = {
     statusGenerating: '生成中',
     statusError: 'エラー',
     statusOffline: '未接続',
+    today: '今日',
     yesterday: '昨日',
     openSidebar: 'サイドバーを開く',
     collapseSidebar: 'サイドバーを折りたたむ',
     closeSidebar: 'サイドバーを閉じる',
     openSettings: '設定を開く',
+    closeSearch: '検索を閉じる',
+    searchPlaceholder: 'チャットを検索...',
+    noSearchResults: '一致する履歴がありません',
     chatTitle: 'ChaoJia - AI チャットアグリゲーター',
   },
 }
@@ -189,7 +209,7 @@ function sanitizeAiHtml(html: string): string {
 
   const allowedTags = new Set([
     'A', 'ARTICLE', 'BLOCKQUOTE', 'BR', 'CODE', 'DIV', 'EM', 'H1', 'H2', 'H3',
-    'H4', 'H5', 'H6', 'HR', 'I', 'LI', 'OL', 'P', 'PRE', 'SECTION', 'SPAN',
+    'H4', 'H5', 'H6', 'HR', 'I', 'IMG', 'LI', 'OL', 'P', 'PRE', 'SECTION', 'SPAN',
     'STRONG', 'TABLE', 'TBODY', 'TD', 'TH', 'THEAD', 'TR', 'UL',
   ])
 
@@ -206,12 +226,19 @@ function sanitizeAiHtml(html: string): string {
 
     for (const attr of Array.from(node.attributes)) {
       const keepHref = node.tagName === 'A' && attr.name === 'href' && /^https?:\/\//i.test(attr.value)
-      if (!keepHref) node.removeAttribute(attr.name)
+      const keepImgSrc = node.tagName === 'IMG' && attr.name === 'src' && /^(https?:\/\/|data:image\/|blob:)/i.test(attr.value)
+      const keepImgAlt = node.tagName === 'IMG' && attr.name === 'alt'
+      if (!keepHref && !keepImgSrc && !keepImgAlt) node.removeAttribute(attr.name)
     }
 
     if (node.tagName === 'A' && node.getAttribute('href')) {
       node.setAttribute('target', '_blank')
       node.setAttribute('rel', 'noreferrer noopener')
+    }
+
+    if (node.tagName === 'IMG' && node.getAttribute('src')) {
+      node.setAttribute('loading', 'lazy')
+      node.setAttribute('decoding', 'async')
     }
 
     for (const child of Array.from(node.childNodes)) {
@@ -463,8 +490,8 @@ function renderLanguageOptions(): void {
 function updateStaticTexts(): void {
   document.documentElement.lang = currentLanguage
   document.title = t('chatTitle')
-  newChatBtn.textContent = `+ ${t('newChat')}`
-  sidebarNavSearchBtn.textContent = t('searchChat')
+  newChatLabelEl.textContent = t('newChat')
+  sidebarNavSearchLabelEl.textContent = t('searchChat')
   sidebarSectionRecentEl.textContent = t('recent')
   settingsThemeTitleEl.textContent = t('theme')
   settingsLanguageTitleEl.textContent = t('language')
@@ -473,6 +500,10 @@ function updateStaticTexts(): void {
   settingsToggleBtn.title = t('openSettings')
   sidebarCollapseBtn.title = t('collapseSidebar')
   closeSidebarBtn.title = t('closeSidebar')
+  searchInputEl.placeholder = t('searchPlaceholder')
+  searchCloseBtn.title = t('closeSearch')
+  searchCloseBtn.setAttribute('aria-label', t('closeSearch'))
+  searchNewChatLabelEl.textContent = t('newChat')
   sidebarRailToggleBtn.title = t('openSidebar')
   sidebarRailNewChatBtn.title = t('newChat')
   sidebarRailSearchBtn.title = t('searchChat')
@@ -492,6 +523,7 @@ function applyLanguage(language: LanguageMode): void {
   renderThemeOptions()
   renderLanguageOptions()
   renderHistoryList()
+  renderSearchResults(searchInputEl.value.trim())
   renderMessages()
   updateStatus('chatgpt', siteStatuses.chatgpt)
   updateStatus('gemini', siteStatuses.gemini)
@@ -611,6 +643,99 @@ function renderHistoryList(): void {
   }
 }
 
+function normalizeSearchText(text: string): string {
+  return text.trim().toLocaleLowerCase()
+}
+
+function formatSearchGroupLabel(timestamp: number): string {
+  const date = new Date(timestamp)
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+  const target = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
+  const diffDays = Math.round((today - target) / 86400000)
+
+  if (diffDays === 0) return t('today')
+  if (diffDays === 1) return t('yesterday')
+
+  const locale = currentLanguage === 'ja' ? 'ja-JP' : currentLanguage === 'en' ? 'en-US' : 'zh-CN'
+  return date.toLocaleDateString(locale, {
+    month: 'long',
+    day: 'numeric',
+  })
+}
+
+function getSearchableChatText(chat: ChatHistory): string {
+  const parts = [chat.title]
+  for (const message of chat.messages) {
+    parts.push(message.content)
+  }
+  return normalizeSearchText(parts.join('\n'))
+}
+
+function renderSearchResults(query: string): void {
+  const normalizedQuery = normalizeSearchText(query)
+  const filteredChats = normalizedQuery
+    ? chatHistories.filter(chat => getSearchableChatText(chat).includes(normalizedQuery))
+    : [...chatHistories]
+
+  searchHistoryGroupsEl.innerHTML = ''
+
+  if (filteredChats.length === 0) {
+    searchHistoryGroupsEl.innerHTML = `<div class="search-empty">${escapeHtml(t('noSearchResults'))}</div>`
+    return
+  }
+
+  let currentGroupLabel = ''
+  let currentGroupEl: HTMLDivElement | null = null
+
+  for (const chat of filteredChats) {
+    const groupLabel = formatSearchGroupLabel(chat.updatedAt)
+    if (groupLabel !== currentGroupLabel) {
+      currentGroupLabel = groupLabel
+      currentGroupEl = document.createElement('div')
+      currentGroupEl.className = 'search-group'
+      currentGroupEl.innerHTML = `<div class="search-group-title">${escapeHtml(groupLabel)}</div>`
+      searchHistoryGroupsEl.appendChild(currentGroupEl)
+    }
+
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.className = `search-history-item ${chat.id === currentChatId ? 'active' : ''}`
+    button.dataset.id = chat.id
+    button.innerHTML = `
+      <span class="search-history-item-icon" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 11.5a8.5 8.5 0 1 1-4.17-7.34"></path>
+          <path d="M8 19l-3 2 .9-3.6"></path>
+        </svg>
+      </span>
+      <span class="search-history-item-text">${escapeHtml(chat.title)}</span>
+    `
+    button.addEventListener('click', () => {
+      closeSearchOverlay()
+      loadChat(chat.id)
+    })
+    currentGroupEl?.appendChild(button)
+  }
+}
+
+function openSearchOverlay(): void {
+  toggleSettingsPopover(false)
+  closeSidebar()
+  searchOverlayEl.hidden = false
+  searchOverlayEl.classList.add('open')
+  renderSearchResults(searchInputEl.value.trim())
+  requestAnimationFrame(() => {
+    searchInputEl.focus()
+    searchInputEl.select()
+  })
+}
+
+function closeSearchOverlay(): void {
+  searchOverlayEl.classList.remove('open')
+  searchOverlayEl.hidden = true
+}
+
 function navigateSiteFrame(site: SiteRole, url?: string, forceReload = false): void {
   const targetUrl = url || DEFAULT_SITE_URLS[site]
   const frame = site === 'chatgpt' ? chatgptFrameEl : geminiFrameEl
@@ -658,6 +783,7 @@ function loadChat(chatId: string): void {
   renderMessages()
   applySessionUrls(chat.sessionUrls)
   toggleSettingsPopover(false)
+  closeSearchOverlay()
   closeSidebar()
   renderHistoryList()
 }
@@ -681,6 +807,7 @@ function createNewChat(): void {
   renderMessages()
   applySessionUrls()
   toggleSettingsPopover(false)
+  closeSearchOverlay()
   renderHistoryList()
   chrome.runtime.sendMessage({ type: 'START_NEW_CHAT' })
 }
@@ -944,7 +1071,6 @@ function renderMessages(): void {
       // 用户消息头像在右边，AI 消息头像在左边
       if (msg.role === 'user') {
         msgEl.appendChild(messageWrapper)
-        msgEl.appendChild(avatarWrapper)
       } else {
         msgEl.appendChild(avatarWrapper)
         msgEl.appendChild(messageWrapper)
@@ -1110,12 +1236,12 @@ sidebarRailNewChatBtn.addEventListener('click', () => {
   createNewChat()
   openSidebar()
 })
-sidebarRailSearchBtn.addEventListener('click', openSidebar)
+sidebarRailSearchBtn.addEventListener('click', openSearchOverlay)
 sidebarRailThemeBtn.addEventListener('click', () => {
   openSidebar()
   toggleSettingsPopover(true)
 })
-sidebarNavSearchBtn.addEventListener('click', openSidebar)
+sidebarNavSearchBtn.addEventListener('click', openSearchOverlay)
 settingsToggleBtn.addEventListener('click', () => toggleSettingsPopover())
 closeSidebarBtn.addEventListener('click', closeSidebar)
 overlayEl.addEventListener('click', closeSidebar)
@@ -1143,10 +1269,25 @@ languageOptionsEl.addEventListener('click', (event) => {
     applyLanguage(language)
   }
 })
+searchInputEl.addEventListener('input', () => renderSearchResults(searchInputEl.value))
+searchCloseBtn.addEventListener('click', closeSearchOverlay)
+searchNewChatBtn.addEventListener('click', () => {
+  createNewChat()
+})
+searchOverlayEl.addEventListener('click', (event) => {
+  if (event.target === searchOverlayEl) {
+    closeSearchOverlay()
+  }
+})
 document.addEventListener('click', (event) => {
   const target = event.target as Node
   if (settingsPopoverEl.contains(target) || settingsToggleBtn.contains(target)) return
   toggleSettingsPopover(false)
+})
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && !searchOverlayEl.hidden) {
+    closeSearchOverlay()
+  }
 })
 
 // 初始化

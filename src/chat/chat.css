@@ -575,7 +575,29 @@ textarea:focus-visible {
   border-radius: 12px;
   font-size: 14px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   transition: background 0.2s, transform 0.15s ease, box-shadow 0.2s;
+}
+
+.sidebar-nav-icon {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sidebar-nav-icon .icon {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.sidebar-nav-label {
+  min-width: 0;
 }
 
 .sidebar-nav-item:hover {
@@ -647,6 +669,179 @@ textarea:focus-visible {
 
 .settings-popover.open {
   display: flex;
+}
+
+.search-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 92px 24px 24px;
+  background: rgba(0, 0, 0, 0.14);
+  backdrop-filter: blur(8px);
+}
+
+.search-overlay[hidden] {
+  display: none;
+}
+
+.search-dialog {
+  width: min(640px, calc(100vw - 48px));
+  max-height: min(640px, calc(100vh - 120px));
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  background: var(--bg-elevated);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.16);
+  display: flex;
+  flex-direction: column;
+}
+
+.search-dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.search-input-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.search-input-icon {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.search-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 15px;
+  outline: none;
+}
+
+.search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.search-close-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  line-height: 1;
+  transition: background 0.2s, color 0.2s;
+}
+
+.search-close-btn:hover {
+  background: var(--button-hover-bg);
+  color: var(--text-primary);
+}
+
+.search-results {
+  padding: 10px 14px 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.search-new-chat-btn {
+  width: 100%;
+  min-height: 44px;
+  border: none;
+  border-radius: 12px;
+  background: rgba(127, 127, 127, 0.08);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.search-new-chat-btn:hover {
+  background: var(--theme-option-active-bg);
+}
+
+.search-history-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.search-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.search-group-title {
+  padding: 4px 10px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.search-history-item {
+  width: 100%;
+  min-height: 42px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s;
+}
+
+.search-history-item:hover,
+.search-history-item.active {
+  background: rgba(127, 127, 127, 0.08);
+}
+
+.search-history-item-icon {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.search-history-item-text {
+  min-width: 0;
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-empty {
+  padding: 18px 12px;
+  color: var(--text-secondary);
+  font-size: 14px;
 }
 
 .settings-group {
@@ -1426,6 +1621,25 @@ body[data-theme='chatgpt-dark'] .ai-frame-header-text {
 .markdown-body a {
   color: #576b95;
   text-decoration: underline;
+}
+
+.markdown-body img {
+  display: inline-block;
+  max-width: min(100%, 320px);
+  max-height: 280px;
+  width: auto;
+  height: auto;
+  margin: 10px 10px 10px 0;
+  border-radius: 14px;
+  object-fit: cover;
+  vertical-align: top;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+}
+
+.markdown-body img:last-child {
+  margin-right: 0;
 }
 
 .markdown-body hr {

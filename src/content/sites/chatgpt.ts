@@ -20,13 +20,14 @@ const ACTIVITY_INDICATORS =
 
 const STOP_RE = /stop|stopping|停止|中止/i
 
-const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'BUTTON', 'SVG'])
+const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'SVG'])
 const CONTENT_ROOT_SELECTORS = [
   '.markdown',
   '.prose',
   '[data-testid="conversation-turn-"] .markdown',
   '[data-testid="conversation-turn-"] .prose',
 ]
+const EXTRA_IMAGE_SKIP_SELECTORS = 'nav, form'
 
 function escapeHtml(text: string): string {
   return text
@@ -39,6 +40,11 @@ function escapeHtml(text: string): string {
 function sanitizeHref(href: string | null): string {
   if (!href) return ''
   return /^https?:\/\//i.test(href) ? href : ''
+}
+
+function sanitizeImageSrc(src: string | null): string {
+  if (!src) return ''
+  return /^(https?:\/\/|data:image\/|blob:)/i.test(src) ? src : ''
 }
 
 function getNodeTextLength(node: Element): number {
@@ -60,6 +66,24 @@ function getContentRoot(container: Element): Element {
     .sort((a, b) => getNodeTextLength(b) - getNodeTextLength(a))
 
   return uniqueCandidates[0] ?? container
+}
+
+function getExtraImageHtml(container: Element, root: Element): string {
+  const seen = new Set<string>()
+  const images = Array.from(container.querySelectorAll('img'))
+
+  return images
+    .filter((img) => !root.contains(img))
+    .filter((img) => !img.closest(EXTRA_IMAGE_SKIP_SELECTORS))
+    .map((img) => {
+      const src = sanitizeImageSrc(img.getAttribute('src'))
+      if (!src || seen.has(src)) return ''
+      seen.add(src)
+      const alt = escapeHtml(img.getAttribute('alt') ?? '')
+      return `<img src="${escapeHtml(src)}" alt="${alt}">`
+    })
+    .filter(Boolean)
+    .join('')
 }
 
 function serializeNode(node: Node): string {
@@ -102,6 +126,14 @@ function serializeNode(node: Node): string {
         ? `<a href="${escapeHtml(href)}" target="_blank" rel="noreferrer noopener">${inner}</a>`
         : inner
     }
+    case 'BUTTON':
+      return inner
+    case 'IMG': {
+      const src = sanitizeImageSrc(node.getAttribute('src'))
+      if (!src) return ''
+      const alt = escapeHtml(node.getAttribute('alt') ?? '')
+      return `<img src="${escapeHtml(src)}" alt="${alt}">`
+    }
     case 'UL':
       return `<ul>${inner}</ul>`
     case 'OL':
@@ -137,8 +169,8 @@ function normalizeHtml(html: string): string {
 
 function captureReply(container: Element): CapturedReply {
   const root = getContentRoot(container)
-  const html = normalizeHtml(serializeNode(root))
-  const fallbackText = (root.textContent ?? '').replace(/\s+/g, ' ').trim()
+  const html = normalizeHtml(`${serializeNode(root)}${getExtraImageHtml(container, root)}`)
+  const fallbackText = (container.textContent ?? '').replace(/\s+/g, ' ').trim()
   return {
     content: html || escapeHtml(fallbackText),
     format: 'html',

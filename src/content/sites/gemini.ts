@@ -10,17 +10,19 @@ const SEND_BUTTON_SELECTORS =
 const NEW_CHAT_SELECTORS =
   'button[aria-label*="New chat"], button[aria-label*="新对话"], button[aria-label*="新しいチャット"], a[href="/app"], a[href="/"], button'
 
-const RESPONSE_SELECTORS = 'model-response, .model-response-text, message-content'
+const RESPONSE_SELECTORS = 'model-response, .model-response-text, message-content, .response-content'
 
 const STOP_RE = /stop|stopping|停止|中止/i
 
-const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'BUTTON', 'SVG'])
+const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'SVG'])
 const CONTENT_ROOT_SELECTORS = [
   '.markdown',
   '.model-response-text',
   'message-content',
   '.response-content',
 ]
+const RESPONSE_CONTAINER_SELECTORS = 'model-response, message-content, .response-content'
+const EXTRA_IMAGE_SKIP_SELECTORS = 'nav, form'
 
 function escapeHtml(text: string): string {
   return text
@@ -35,12 +37,47 @@ function sanitizeHref(href: string | null): string {
   return /^https?:\/\//i.test(href) ? href : ''
 }
 
+function sanitizeImageSrc(src: string | null): string {
+  if (!src) return ''
+  return /^(https?:\/\/|data:image\/|blob:)/i.test(src) ? src : ''
+}
+
 function getContentRoot(container: Element): Element {
-  for (const selector of CONTENT_ROOT_SELECTORS) {
-    const matched = container.querySelector(selector)
-    if (matched) return matched
+  const candidates = [
+    ...CONTENT_ROOT_SELECTORS
+      .map(selector => container.querySelector(selector))
+      .filter((node): node is Element => Boolean(node)),
+  ]
+
+  const textCandidate = candidates
+    .map(node => ({
+      node,
+      textLength: (node.textContent ?? '').replace(/\s+/g, ' ').trim().length,
+    }))
+    .sort((a, b) => b.textLength - a.textLength)[0]
+
+  if (textCandidate && textCandidate.textLength > 0) {
+    return textCandidate.node
   }
   return container
+}
+
+function getExtraImageHtml(container: Element, root: Element): string {
+  const seen = new Set<string>()
+  const images = Array.from(container.querySelectorAll('img'))
+
+  return images
+    .filter((img) => !root.contains(img))
+    .filter((img) => !img.closest(EXTRA_IMAGE_SKIP_SELECTORS))
+    .map((img) => {
+      const src = sanitizeImageSrc(img.getAttribute('src'))
+      if (!src || seen.has(src)) return ''
+      seen.add(src)
+      const alt = escapeHtml(img.getAttribute('alt') ?? '')
+      return `<img src="${escapeHtml(src)}" alt="${alt}">`
+    })
+    .filter(Boolean)
+    .join('')
 }
 
 function serializeNode(node: Node): string {
@@ -83,6 +120,14 @@ function serializeNode(node: Node): string {
         ? `<a href="${escapeHtml(href)}" target="_blank" rel="noreferrer noopener">${inner}</a>`
         : inner
     }
+    case 'BUTTON':
+      return inner
+    case 'IMG': {
+      const src = sanitizeImageSrc(node.getAttribute('src'))
+      if (!src) return ''
+      const alt = escapeHtml(node.getAttribute('alt') ?? '')
+      return `<img src="${escapeHtml(src)}" alt="${alt}">`
+    }
     case 'UL':
       return `<ul>${inner}</ul>`
     case 'OL':
@@ -118,8 +163,8 @@ function normalizeHtml(html: string): string {
 
 function captureReply(container: Element): CapturedReply {
   const root = getContentRoot(container)
-  const html = normalizeHtml(serializeNode(root))
-  const fallbackText = (root.textContent ?? '').replace(/\s+/g, ' ').trim()
+  const html = normalizeHtml(`${serializeNode(root)}${getExtraImageHtml(container, root)}`)
+  const fallbackText = (container.textContent ?? '').replace(/\s+/g, ' ').trim()
   return {
     content: html || escapeHtml(fallbackText),
     format: 'html',
@@ -131,7 +176,9 @@ export function createGeminiAdapter(): ChatSiteAdapter {
     id: 'gemini',
 
     getResponseContainers(): Element[] {
-      return [...document.querySelectorAll(RESPONSE_SELECTORS)]
+      const candidates = [...document.querySelectorAll(RESPONSE_SELECTORS)]
+      const containers = candidates.map((node) => node.closest(RESPONSE_CONTAINER_SELECTORS) ?? node)
+      return Array.from(new Set(containers))
     },
 
     getAllAssistantReplies(): CapturedReply[] {
