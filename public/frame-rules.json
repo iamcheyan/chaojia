@@ -43,5 +43,50 @@
       "urlFilter": "||gemini.google.com/",
       "resourceTypes": ["sub_frame"]
     }
+  },
+  {
+    "id": 4,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "responseHeaders": [
+        { "header": "content-security-policy", "operation": "remove" },
+        { "header": "x-frame-options", "operation": "remove" }
+      ]
+    },
+    "condition": {
+      "regexFilter": "^https://([a-z0-9-]+\\.)?(accounts|apis|ogs)\\.google\\.com/.*",
+      "resourceTypes": ["sub_frame"]
+    }
+  },
+  {
+    "id": 5,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "responseHeaders": [
+        { "header": "content-security-policy", "operation": "remove" },
+        { "header": "x-frame-options", "operation": "remove" }
+      ]
+    },
+    "condition": {
+      "regexFilter": "^https://([a-z0-9-]+\\.)?(googleusercontent|gstatic)\\.com/.*",
+      "resourceTypes": ["sub_frame"]
+    }
+  },
+  {
+    "id": 6,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "responseHeaders": [
+        { "header": "content-security-policy", "operation": "remove" },
+        { "header": "x-frame-options", "operation": "remove" }
+      ]
+    },
+    "condition": {
+      "urlFilter": "||www.google.com/",
+      "resourceTypes": ["sub_frame"]
+    }
   }
 ]

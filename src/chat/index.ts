@@ -80,7 +80,7 @@ const chatgptIconUrl = chrome.runtime.getURL('icons/chatgpt.png')
 const geminiIconUrl = chrome.runtime.getURL('icons/gemini.png')
 const DEFAULT_SITE_URLS: Record<SiteRole, string> = {
   chatgpt: 'https://chatgpt.com/',
-  gemini: 'https://gemini.google.com/',
+  gemini: 'https://gemini.google.com/app',
 }
 
 const TRANSLATIONS: Record<LanguageMode, Record<string, string>> = {

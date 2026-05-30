@@ -596,17 +596,11 @@ textarea:focus-visible {
   transition: background 0.2s, border-color 0.2s, transform 0.15s ease, box-shadow 0.2s;
 }
 
-.settings-trigger::before {
-  content: '';
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 2px solid currentColor;
-  box-shadow:
-    0 -8px 0 -6px currentColor,
-    0 8px 0 -6px currentColor,
-    8px 0 0 -6px currentColor,
-    -8px 0 0 -6px currentColor;
+.settings-trigger .icon {
+  width: 18px;
+  height: 18px;
+  display: block;
+  color: currentColor;
 }
 
 .settings-trigger:hover,
