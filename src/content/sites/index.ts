@@ -4,6 +4,7 @@ import { createClaudeAdapter } from './claude'
 import { createDeepSeekAdapter } from './deepseek'
 import { createKimiAdapter } from './kimi'
 import { createDoubaoAdapter } from './doubao'
+import { createYiyanAdapter } from './yiyan'
 import { createPlaceholderAdapter } from './placeholder'
 import type { ChatSiteAdapter } from './types'
 
@@ -35,8 +36,8 @@ const adapterMap: Record<string, () => ChatSiteAdapter> = {
   'www.doubao.com': createDoubaoAdapter,
   'doubao.com': createDoubaoAdapter,
 
-  // 文心一言 (placeholder - full adapter in US-006)
-  'yiyan.baidu.com': () => createPlaceholderAdapter('yiyan', 'yiyan.baidu.com'),
+  // 文心一言 (Yiyan by Baidu)
+  'yiyan.baidu.com': createYiyanAdapter,
 
   // 通义千问 (placeholder - full adapter in US-007)
   'tongyi.aliyun.com': () => createPlaceholderAdapter('tongyi', 'tongyi.aliyun.com'),

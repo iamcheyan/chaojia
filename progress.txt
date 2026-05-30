@@ -60,3 +60,19 @@ Started: 2026-05-30 16:08:03
   - Send button has a `.send-button-container` class that becomes enabled when text is entered
   - Kimi's main domain is `kimi.moonshot.cn` but redirects to `www.kimi.com` for the main page
 ---
+
+## 2026-05-31 14:20 - US-005
+- Implemented Doubao (豆包) adapter in `src/content/sites/doubao.ts`
+- Includes: textarea/contenteditable input selectors, send button selectors (multilingual), response container detection, stop generating, start new chat
+- Handles streaming detection and HTML serialization of Doubao messages
+- Updated `src/content/sites/index.ts` to replace placeholder with real adapter for www.doubao.com and doubao.com
+- Updated `manifest.json` with doubao.com host permissions and content_scripts matches
+- Updated `public/frame-rules.json` with Doubao iframe support (rule id 10)
+- Typecheck and lint pass
+- Files: `src/content/sites/doubao.ts`, `src/content/sites/index.ts`, `public/manifest.json`, `public/frame-rules.json`
+- **Learnings for future iterations:**
+  - Doubao uses textarea or contenteditable div for input (similar to other Chinese AI sites)
+  - Response containers use standard `.markdown`, `.prose` classes
+  - New chat button matches patterns like `新对话`, `新会话`
+  - Doubao main URL for new chat fallback is `https://www.doubao.com/chat/`
+---
