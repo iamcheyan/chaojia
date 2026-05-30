@@ -1,4 +1,4 @@
-# ChaoJia 设计文档
+# MultiChat 设计文档
 
 ## 项目目标
 

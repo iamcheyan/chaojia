@@ -1,4 +1,4 @@
-// ChaoJia Background Service Worker
+// MultiChat Background Service Worker
 // Routes messages between chat page and content scripts in AI site iframes
 export {}
 

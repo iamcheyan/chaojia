@@ -42,7 +42,7 @@ if (typeof (window as any).__CHAOJIA_LOADED__ === 'undefined') {
         replyObserver.captureBaseline()
         replyObserver.startPolling()
         siteAdapter.fillAndSend(content, autoSend).catch((err: Error) => {
-          console.error('[ChaoJia] fillAndSend failed:', err)
+          console.error('[MultiChat] fillAndSend failed:', err)
           replyObserver.stop()
           chrome.runtime.sendMessage({
             type: 'ROLE_STATUS',

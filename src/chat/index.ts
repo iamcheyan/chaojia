@@ -134,7 +134,7 @@ const TRANSLATIONS: Record<LanguageMode, Record<string, string>> = {
     exportEmpty: '当前没有可下载的聊天内容',
     exportingChat: '正在打包对话...',
     exportFailed: '下载失败，请稍后重试',
-    chatTitle: 'ChaoJia - AI 聊天聚合器',
+    chatTitle: 'MultiChat - AI 聊天聚合器',
   },
   en: {
     newChat: 'New Chat',
@@ -170,7 +170,7 @@ const TRANSLATIONS: Record<LanguageMode, Record<string, string>> = {
     exportEmpty: 'No chat content to export',
     exportingChat: 'Preparing chat export...',
     exportFailed: 'Export failed. Please try again.',
-    chatTitle: 'ChaoJia - AI Chat Aggregator',
+    chatTitle: 'MultiChat - AI Chat Aggregator',
   },
   ja: {
     newChat: '新しいチャット',
@@ -206,7 +206,7 @@ const TRANSLATIONS: Record<LanguageMode, Record<string, string>> = {
     exportEmpty: 'ダウンロードできるチャット内容がありません',
     exportingChat: 'チャットを書き出しています...',
     exportFailed: 'ダウンロードに失敗しました。もう一度お試しください。',
-    chatTitle: 'ChaoJia - AI チャットアグリゲーター',
+    chatTitle: 'MultiChat - AI チャットアグリゲーター',
   },
 }
 
@@ -293,17 +293,27 @@ function sanitizeAiHtml(html: string): string {
   return template.innerHTML
 }
 
-function extractGalleryImageNode(node: Node): HTMLImageElement | null {
-  if (!(node instanceof HTMLElement)) return null
-  if (node.classList.contains('message-image-row') || node.classList.contains('message-image-card')) return null
-  if (node.tagName === 'IMG') return node as HTMLImageElement
+function extractGalleryImageNodes(node: Node): HTMLImageElement[] {
+  if (!(node instanceof HTMLElement)) return []
+  if (node.classList.contains('message-image-row') || node.classList.contains('message-image-card')) return []
+  if (node.tagName === 'IMG') return [node as HTMLImageElement]
 
   if (node.childElementCount === 1 && node.firstElementChild instanceof HTMLImageElement) {
     const text = (node.textContent ?? '').trim()
-    if (!text) return node.firstElementChild
+    if (!text) return [node.firstElementChild]
   }
 
-  return null
+  const images = Array.from(node.querySelectorAll<HTMLImageElement>('img'))
+  if (images.length > 0) {
+    const cloned = node.cloneNode(true) as HTMLElement
+    for (const image of Array.from(cloned.querySelectorAll('img'))) {
+      image.remove()
+    }
+    const text = (cloned.textContent ?? '').trim()
+    if (!text) return images
+  }
+
+  return []
 }
 
 function layoutMessageImages(contentEl: HTMLElement): void {
@@ -311,7 +321,7 @@ function layoutMessageImages(contentEl: HTMLElement): void {
   let currentGroup: { source: HTMLElement, image: HTMLImageElement, removeSource: boolean }[] = []
 
   const flushGroup = (): void => {
-    if (currentGroup.length < 2) {
+    if (currentGroup.length === 0) {
       currentGroup = []
       return
     }
@@ -319,8 +329,8 @@ function layoutMessageImages(contentEl: HTMLElement): void {
     const anchorEl = currentGroup[0].source
     const rowEl = document.createElement('div')
     rowEl.className = 'message-image-row'
-    rowEl.style.setProperty('--image-columns', String(Math.min(currentGroup.length, 4)))
     contentEl.insertBefore(rowEl, anchorEl)
+    const sourcesToRemove = new Set<HTMLElement>()
 
     for (const item of currentGroup) {
       const cardEl = document.createElement('div')
@@ -328,21 +338,27 @@ function layoutMessageImages(contentEl: HTMLElement): void {
       rowEl.appendChild(cardEl)
       cardEl.appendChild(item.image)
       if (item.removeSource) {
-        item.source.remove()
+        sourcesToRemove.add(item.source)
       }
+    }
+
+    for (const source of sourcesToRemove) {
+      source.remove()
     }
 
     currentGroup = []
   }
 
   for (const node of nodes) {
-    const image = extractGalleryImageNode(node)
-    if (image && node instanceof HTMLElement) {
-      currentGroup.push({
-        source: node,
-        image,
-        removeSource: node !== image,
-      })
+    const images = extractGalleryImageNodes(node)
+    if (images.length > 0 && node instanceof HTMLElement) {
+      for (const image of images) {
+        currentGroup.push({
+          source: node,
+          image,
+          removeSource: node !== image,
+        })
+      }
       continue
     }
 
