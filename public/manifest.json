@@ -41,10 +41,13 @@
     "https://www.baidu.com/*",
     "https://*.baidu.com/*",
     "https://tongyi.aliyun.com/*",
-    "https://*.tongyi.aliyun.com/*"
+    "https://*.tongyi.aliyun.com/*",
+    "https://www.perplexity.ai/*",
+    "https://perplexity.ai/*",
+    "https://*.perplexity.ai/*"
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; frame-src https://chatgpt.com https://*.chatgpt.com https://chat.openai.com https://gemini.google.com https://*.gemini.google.com https://accounts.google.com https://apis.google.com https://ogs.google.com https://www.google.com https://*.googleusercontent.com https://*.gstatic.com https://claude.ai https://*.claude.ai https://chat.deepseek.com https://*.chat.deepseek.com https://www.doubao.com https://doubao.com https://*.doubao.com https://yiyan.baidu.com https://*.yiyan.baidu.com https://www.baidu.com https://*.baidu.com https://tongyi.aliyun.com https://*.tongyi.aliyun.com;"
+    "extension_pages": "script-src 'self'; object-src 'self'; frame-src https://chatgpt.com https://*.chatgpt.com https://chat.openai.com https://gemini.google.com https://*.gemini.google.com https://accounts.google.com https://apis.google.com https://ogs.google.com https://www.google.com https://*.googleusercontent.com https://*.gstatic.com https://claude.ai https://*.claude.ai https://chat.deepseek.com https://*.chat.deepseek.com https://www.doubao.com https://doubao.com https://*.doubao.com https://yiyan.baidu.com https://*.yiyan.baidu.com https://www.baidu.com https://*.baidu.com https://tongyi.aliyun.com https://*.tongyi.aliyun.com https://www.perplexity.ai https://perplexity.ai https://*.perplexity.ai;"
   },
   "action": {
     "default_title": "aigumi",
@@ -83,7 +86,10 @@
         "*://www.baidu.com/*",
         "*://*.baidu.com/*",
         "*://tongyi.aliyun.com/*",
-        "*://*.tongyi.aliyun.com/*"
+        "*://*.tongyi.aliyun.com/*",
+        "*://www.perplexity.ai/*",
+        "*://perplexity.ai/*",
+        "*://*.perplexity.ai/*"
       ],
       "js": ["content.js"],
       "run_at": "document_start",

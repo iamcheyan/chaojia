@@ -129,8 +129,8 @@
         "Typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Adapter fully implemented with selectors, manifest permissions, DNR frame rules, and HTML serialization"
     },
     {
       "id": "US-008",
@@ -148,8 +148,8 @@
         "Typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Adapter fully implemented with selectors, manifest permissions, DNR frame rules, and HTML serialization"
     },
     {
       "id": "US-009",

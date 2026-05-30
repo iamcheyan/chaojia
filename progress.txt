@@ -93,3 +93,35 @@ Started: 2026-05-30 16:08:03
   - Yiyan main URL for new chat fallback is `https://yiyan.baidu.com/`
   - Baidu domain includes many subdomains, so added both yiyan.baidu.com and www.baidu.com patterns
 ---
+
+## 2026-05-31 16:20 - US-007
+- Implemented Tongyi (通义千问) adapter in `src/content/sites/tongyi.ts`
+- Includes: textarea/contenteditable input selectors, send button selectors (multilingual), response container detection, stop generating, start new chat
+- Handles streaming detection and HTML serialization of Tongyi messages
+- Updated `src/content/sites/index.ts` to replace placeholder with real adapter for tongyi.aliyun.com
+- Updated `manifest.json` with tongyi.aliyun.com host permissions, content_scripts matches, and CSP frame-src
+- Updated `public/frame-rules.json` with Tongyi iframe support (rule id 13)
+- Typecheck and lint pass
+- Files: `src/content/sites/tongyi.ts`, `src/content/sites/index.ts`, `public/manifest.json`, `public/frame-rules.json`
+- **Learnings for future iterations:**
+  - Tongyi uses textarea or contenteditable div for input (same pattern as other Chinese AI sites)
+  - Response containers use standard `.markdown`, `.prose`, `[class*="message-content"]` classes
+  - New chat URL is `https://tongyi.aliyun.com/qianwen/`
+  - Tongyi is Alibaba's Qwen-based chat service, domain is tongyi.aliyun.com
+---
+
+## 2026-05-31 17:30 - US-008
+- Implemented Perplexity adapter in `src/content/sites/perplexity.ts`
+- Includes: textarea/contenteditable input selectors, send button selectors, response container detection, stop generating, start new chat
+- Handles streaming detection and HTML serialization of Perplexity messages
+- Updated `src/content/sites/index.ts` to replace placeholder with real adapter for perplexity.ai and www.perplexity.ai
+- Updated `manifest.json` with perplexity.ai host permissions, content_scripts matches, and CSP frame-src
+- Updated `public/frame-rules.json` with Perplexity iframe support (rule id 14)
+- Typecheck and lint pass
+- Files: `src/content/sites/perplexity.ts`, `src/content/sites/index.ts`, `public/manifest.json`, `public/frame-rules.json`
+- **Learnings for future iterations:**
+  - Perplexity uses textarea or contenteditable div for input (same pattern as other AI sites)
+  - Response containers use standard `.prose`, `.markdown` classes
+  - Perplexity is an AI search engine with citation support - responses include reference links
+  - New chat URL is `https://www.perplexity.ai/`
+---

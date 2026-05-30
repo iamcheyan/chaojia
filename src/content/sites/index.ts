@@ -6,7 +6,7 @@ import { createKimiAdapter } from './kimi'
 import { createDoubaoAdapter } from './doubao'
 import { createYiyanAdapter } from './yiyan'
 import { createTongyiAdapter } from './tongyi'
-import { createPlaceholderAdapter } from './placeholder'
+import { createPerplexityAdapter } from './perplexity'
 import type { ChatSiteAdapter } from './types'
 
 /**
@@ -43,9 +43,9 @@ const adapterMap: Record<string, () => ChatSiteAdapter> = {
   // 通义千问 (Tongyi by Alibaba)
   'tongyi.aliyun.com': createTongyiAdapter,
 
-  // Perplexity (placeholder - full adapter in US-008)
-  'www.perplexity.ai': () => createPlaceholderAdapter('perplexity', 'www.perplexity.ai'),
-  'perplexity.ai': () => createPlaceholderAdapter('perplexity', 'perplexity.ai'),
+  // Perplexity
+  'www.perplexity.ai': createPerplexityAdapter,
+  'perplexity.ai': createPerplexityAdapter,
 }
 
 /**
