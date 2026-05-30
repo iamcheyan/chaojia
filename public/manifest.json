@@ -32,10 +32,13 @@
     "https://chat.deepseek.com/*",
     "https://*.chat.deepseek.com/*",
     "https://kimi.moonshot.cn/*",
-    "https://*.kimi.moonshot.cn/*"
+    "https://*.kimi.moonshot.cn/*",
+    "https://www.doubao.com/*",
+    "https://doubao.com/*",
+    "https://*.doubao.com/*"
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; frame-src https://chatgpt.com https://*.chatgpt.com https://chat.openai.com https://gemini.google.com https://*.gemini.google.com https://accounts.google.com https://apis.google.com https://ogs.google.com https://www.google.com https://*.googleusercontent.com https://*.gstatic.com https://claude.ai https://*.claude.ai https://chat.deepseek.com https://*.chat.deepseek.com;"
+    "extension_pages": "script-src 'self'; object-src 'self'; frame-src https://chatgpt.com https://*.chatgpt.com https://chat.openai.com https://gemini.google.com https://*.gemini.google.com https://accounts.google.com https://apis.google.com https://ogs.google.com https://www.google.com https://*.googleusercontent.com https://*.gstatic.com https://claude.ai https://*.claude.ai https://chat.deepseek.com https://*.chat.deepseek.com https://www.doubao.com https://doubao.com https://*.doubao.com;"
   },
   "action": {
     "default_title": "aigumi",
@@ -65,7 +68,10 @@
         "*://chat.deepseek.com/*",
         "*://*.chat.deepseek.com/*",
         "*://kimi.moonshot.cn/*",
-        "*://*.kimi.moonshot.cn/*"
+        "*://*.kimi.moonshot.cn/*",
+        "*://www.doubao.com/*",
+        "*://doubao.com/*",
+        "*://*.doubao.com/*"
       ],
       "js": ["content.js"],
       "run_at": "document_start",

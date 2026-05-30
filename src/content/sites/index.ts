@@ -3,6 +3,7 @@ import { createGeminiAdapter } from './gemini'
 import { createClaudeAdapter } from './claude'
 import { createDeepSeekAdapter } from './deepseek'
 import { createKimiAdapter } from './kimi'
+import { createDoubaoAdapter } from './doubao'
 import { createPlaceholderAdapter } from './placeholder'
 import type { ChatSiteAdapter } from './types'
 
@@ -30,9 +31,9 @@ const adapterMap: Record<string, () => ChatSiteAdapter> = {
   // Kimi
   'kimi.moonshot.cn': createKimiAdapter,
 
-  // 豆包 (placeholder - full adapter in US-005)
-  'www.doubao.com': () => createPlaceholderAdapter('doubao', 'www.doubao.com'),
-  'doubao.com': () => createPlaceholderAdapter('doubao', 'doubao.com'),
+  // 豆包 (Doubao by ByteDance)
+  'www.doubao.com': createDoubaoAdapter,
+  'doubao.com': createDoubaoAdapter,
 
   // 文心一言 (placeholder - full adapter in US-006)
   'yiyan.baidu.com': () => createPlaceholderAdapter('yiyan', 'yiyan.baidu.com'),

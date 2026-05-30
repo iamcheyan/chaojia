@@ -133,5 +133,20 @@
       "urlFilter": "||kimi.moonshot.cn/",
       "resourceTypes": ["sub_frame"]
     }
+  },
+  {
+    "id": 10,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "responseHeaders": [
+        { "header": "content-security-policy", "operation": "remove" },
+        { "header": "x-frame-options", "operation": "remove" }
+      ]
+    },
+    "condition": {
+      "urlFilter": "||doubao.com/",
+      "resourceTypes": ["sub_frame"]
+    }
   }
 ]
