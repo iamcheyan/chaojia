@@ -8,6 +8,7 @@ export interface ChatSiteAdapter {
   getResponseContainers(): Element[]
   getAllAssistantReplies(): CapturedReply[]
   readResponse(node: Node): CapturedReply
+  captureFinalReply?(container: Element): Promise<CapturedReply | null>
   isGenerating(): boolean
   stopGenerating(): Promise<boolean>
   startNewChat(): Promise<boolean>

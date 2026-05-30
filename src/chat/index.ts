@@ -1,5 +1,8 @@
 // src/chat/index.ts
 
+import JSZip from 'jszip'
+import hljs from 'highlight.js/lib/common'
+
 type MessageContentFormat = 'text' | 'html'
 type ThemeMode = 'wechat' | 'chatgpt-light' | 'chatgpt-dark'
 type LanguageMode = 'zh-CN' | 'en' | 'ja'
@@ -33,6 +36,7 @@ const PANEL_WIDTH_KEY = 'chaojia-chat-panel-width'
 const THEME_KEY = 'chaojia-theme'
 const LANGUAGE_KEY = 'chaojia-language'
 const SIDEBAR_COLLAPSED_KEY = 'chaojia-sidebar-collapsed'
+const ACTIVE_PROVIDERS_KEY = 'chaojia-active-providers'
 const MAX_HISTORY = 50
 const CHAT_PANEL_MIN_WIDTH = 360
 const AI_PANEL_MIN_WIDTH = 320
@@ -67,8 +71,10 @@ const sidebarNavSearchLabelEl = document.getElementById('sidebar-nav-search-labe
 const sidebarSectionRecentEl = document.getElementById('sidebar-section-recent') as HTMLDivElement
 const settingsToggleBtn = document.getElementById('settings-toggle') as HTMLButtonElement
 const settingsPopoverEl = document.getElementById('settings-popover') as HTMLDivElement
+const settingsProviderTitleEl = document.getElementById('settings-provider-title') as HTMLDivElement
 const settingsThemeTitleEl = document.getElementById('settings-theme-title') as HTMLDivElement
 const settingsLanguageTitleEl = document.getElementById('settings-language-title') as HTMLDivElement
+const providerOptionsEl = document.getElementById('provider-options') as HTMLDivElement
 const themeOptionsEl = document.getElementById('theme-options') as HTMLDivElement
 const languageOptionsEl = document.getElementById('language-options') as HTMLDivElement
 const searchOverlayEl = document.getElementById('search-overlay') as HTMLDivElement
@@ -79,7 +85,10 @@ const searchNewChatLabelEl = document.getElementById('search-new-chat-label') as
 const searchHistoryGroupsEl = document.getElementById('search-history-groups') as HTMLDivElement
 const layoutEl = document.getElementById('layout') as HTMLDivElement
 const chatPanelEl = document.getElementById('chat-panel') as HTMLDivElement
+const exportChatBtn = document.getElementById('export-chat-btn') as HTMLButtonElement
 const aiPanelEl = document.getElementById('ai-panel') as HTMLDivElement
+const chatgptFrameWrapperEl = document.getElementById('ai-frame-wrapper-chatgpt') as HTMLDivElement
+const geminiFrameWrapperEl = document.getElementById('ai-frame-wrapper-gemini') as HTMLDivElement
 const panelResizerEl = document.getElementById('panel-resizer') as HTMLDivElement
 const chatgptFrameEl = document.getElementById('frame-chatgpt') as HTMLIFrameElement
 const geminiFrameEl = document.getElementById('frame-gemini') as HTMLIFrameElement
@@ -96,8 +105,10 @@ const TRANSLATIONS: Record<LanguageMode, Record<string, string>> = {
     searchChat: '搜索聊天',
     settings: '设置',
     recent: '最近',
+    providers: '供应商',
     theme: '主题',
     language: '语言',
+    providerAtLeastOne: '至少保留一个供应商',
     themeWechat: 'WeChat',
     themeChatGptLight: 'ChatGPT 亮色',
     themeChatGptDark: 'ChatGPT 深色',
@@ -117,8 +128,12 @@ const TRANSLATIONS: Record<LanguageMode, Record<string, string>> = {
     closeSidebar: '关闭侧边栏',
     openSettings: '打开设置',
     closeSearch: '关闭搜索',
+    downloadChat: '下载对话',
     searchPlaceholder: '搜索聊天...',
     noSearchResults: '没有找到相关历史记录',
+    exportEmpty: '当前没有可下载的聊天内容',
+    exportingChat: '正在打包对话...',
+    exportFailed: '下载失败，请稍后重试',
     chatTitle: 'ChaoJia - AI 聊天聚合器',
   },
   en: {
@@ -126,8 +141,10 @@ const TRANSLATIONS: Record<LanguageMode, Record<string, string>> = {
     searchChat: 'Search',
     settings: 'Settings',
     recent: 'Recent',
+    providers: 'Providers',
     theme: 'Theme',
     language: 'Language',
+    providerAtLeastOne: 'Keep at least one provider enabled',
     themeWechat: 'WeChat',
     themeChatGptLight: 'ChatGPT Light',
     themeChatGptDark: 'ChatGPT Dark',
@@ -147,8 +164,12 @@ const TRANSLATIONS: Record<LanguageMode, Record<string, string>> = {
     closeSidebar: 'Close sidebar',
     openSettings: 'Open settings',
     closeSearch: 'Close search',
+    downloadChat: 'Download chat',
     searchPlaceholder: 'Search chats...',
     noSearchResults: 'No matching chat history',
+    exportEmpty: 'No chat content to export',
+    exportingChat: 'Preparing chat export...',
+    exportFailed: 'Export failed. Please try again.',
     chatTitle: 'ChaoJia - AI Chat Aggregator',
   },
   ja: {
@@ -156,8 +177,10 @@ const TRANSLATIONS: Record<LanguageMode, Record<string, string>> = {
     searchChat: 'チャット検索',
     settings: '設定',
     recent: '最近',
+    providers: 'プロバイダー',
     theme: 'テーマ',
     language: '言語',
+    providerAtLeastOne: '少なくとも1つのプロバイダーを有効にしてください',
     themeWechat: 'WeChat',
     themeChatGptLight: 'ChatGPT ライト',
     themeChatGptDark: 'ChatGPT ダーク',
@@ -177,8 +200,12 @@ const TRANSLATIONS: Record<LanguageMode, Record<string, string>> = {
     closeSidebar: 'サイドバーを閉じる',
     openSettings: '設定を開く',
     closeSearch: '検索を閉じる',
+    downloadChat: 'チャットをダウンロード',
     searchPlaceholder: 'チャットを検索...',
     noSearchResults: '一致する履歴がありません',
+    exportEmpty: 'ダウンロードできるチャット内容がありません',
+    exportingChat: 'チャットを書き出しています...',
+    exportFailed: 'ダウンロードに失敗しました。もう一度お試しください。',
     chatTitle: 'ChaoJia - AI チャットアグリゲーター',
   },
 }
@@ -186,7 +213,12 @@ const TRANSLATIONS: Record<LanguageMode, Record<string, string>> = {
 let currentTheme: ThemeMode = 'wechat'
 let currentLanguage: LanguageMode = 'zh-CN'
 let isSidebarCollapsed = false
+let isExportingChat = false
 let currentSessionUrls: ChatSessionUrls = {}
+let activeProviders: Record<SiteRole, boolean> = {
+  chatgpt: true,
+  gemini: true,
+}
 const siteStatuses: Record<SiteRole, string> = {
   chatgpt: 'offline',
   gemini: 'offline',
@@ -225,10 +257,18 @@ function sanitizeAiHtml(html: string): string {
     }
 
     for (const attr of Array.from(node.attributes)) {
-      const keepHref = node.tagName === 'A' && attr.name === 'href' && /^https?:\/\//i.test(attr.value)
-      const keepImgSrc = node.tagName === 'IMG' && attr.name === 'src' && /^(https?:\/\/|data:image\/|blob:)/i.test(attr.value)
+      const normalizedValue = attr.value.trim()
+      const keepHref = node.tagName === 'A' && attr.name === 'href' && /^https?:\/\//i.test(normalizedValue)
+      const keepImgSrc = node.tagName === 'IMG' && attr.name === 'src' && /^(https?:\/\/|data:image\/|blob:)/i.test(normalizedValue)
       const keepImgAlt = node.tagName === 'IMG' && attr.name === 'alt'
-      if (!keepHref && !keepImgSrc && !keepImgAlt) node.removeAttribute(attr.name)
+      if (!keepHref && !keepImgSrc && !keepImgAlt) {
+        node.removeAttribute(attr.name)
+        continue
+      }
+
+      if ((keepHref || keepImgSrc) && normalizedValue !== attr.value) {
+        node.setAttribute(attr.name, normalizedValue)
+      }
     }
 
     if (node.tagName === 'A' && node.getAttribute('href')) {
@@ -251,6 +291,297 @@ function sanitizeAiHtml(html: string): string {
   }
 
   return template.innerHTML
+}
+
+function extractGalleryImageNode(node: Node): HTMLImageElement | null {
+  if (!(node instanceof HTMLElement)) return null
+  if (node.classList.contains('message-image-row') || node.classList.contains('message-image-card')) return null
+  if (node.tagName === 'IMG') return node as HTMLImageElement
+
+  if (node.childElementCount === 1 && node.firstElementChild instanceof HTMLImageElement) {
+    const text = (node.textContent ?? '').trim()
+    if (!text) return node.firstElementChild
+  }
+
+  return null
+}
+
+function layoutMessageImages(contentEl: HTMLElement): void {
+  const nodes = Array.from(contentEl.childNodes)
+  let currentGroup: { source: HTMLElement, image: HTMLImageElement, removeSource: boolean }[] = []
+
+  const flushGroup = (): void => {
+    if (currentGroup.length < 2) {
+      currentGroup = []
+      return
+    }
+
+    const anchorEl = currentGroup[0].source
+    const rowEl = document.createElement('div')
+    rowEl.className = 'message-image-row'
+    rowEl.style.setProperty('--image-columns', String(Math.min(currentGroup.length, 4)))
+    contentEl.insertBefore(rowEl, anchorEl)
+
+    for (const item of currentGroup) {
+      const cardEl = document.createElement('div')
+      cardEl.className = 'message-image-card'
+      rowEl.appendChild(cardEl)
+      cardEl.appendChild(item.image)
+      if (item.removeSource) {
+        item.source.remove()
+      }
+    }
+
+    currentGroup = []
+  }
+
+  for (const node of nodes) {
+    const image = extractGalleryImageNode(node)
+    if (image && node instanceof HTMLElement) {
+      currentGroup.push({
+        source: node,
+        image,
+        removeSource: node !== image,
+      })
+      continue
+    }
+
+    flushGroup()
+  }
+
+  flushGroup()
+}
+
+function highlightCodeBlocks(contentEl: HTMLElement): void {
+  const codeBlocks = contentEl.querySelectorAll<HTMLElement>('pre code')
+  for (const codeEl of codeBlocks) {
+    const rawCode = codeEl.textContent ?? ''
+    if (!rawCode.trim()) continue
+
+    const languageClass = Array.from(codeEl.classList).find(className => className.startsWith('language-'))
+    const preferredLanguage = languageClass?.slice('language-'.length)
+    const result = preferredLanguage && hljs.getLanguage(preferredLanguage)
+      ? hljs.highlight(rawCode, { language: preferredLanguage, ignoreIllegals: true })
+      : hljs.highlightAuto(rawCode)
+
+    codeEl.innerHTML = result.value
+    codeEl.classList.add('hljs')
+    if (result.language) {
+      codeEl.dataset.language = result.language
+      codeEl.parentElement?.setAttribute('data-language', result.language)
+    }
+  }
+}
+
+function renderAiContent(contentEl: HTMLElement, content: string, contentFormat: MessageContentFormat): void {
+  contentEl.innerHTML = contentFormat === 'html'
+    ? sanitizeAiHtml(content)
+    : simpleMarkdown(content)
+  highlightCodeBlocks(contentEl)
+  layoutMessageImages(contentEl)
+}
+
+function sanitizeFileName(name: string): string {
+  return name
+    .trim()
+    .replace(/[\\/:*?"<>|]+/g, '-')
+    .replace(/\s+/g, ' ')
+    .slice(0, 80) || 'chat'
+}
+
+function inferImageExtension(url: string): string {
+  try {
+    const pathname = new URL(url).pathname.toLowerCase()
+    const extMatch = pathname.match(/\.(png|jpe?g|gif|webp|bmp|svg)$/)
+    if (extMatch) return extMatch[0]
+  } catch {}
+  return '.png'
+}
+
+function getCurrentChatTitle(): string {
+  const currentChat = chatHistories.find(chat => chat.id === currentChatId)
+  if (currentChat?.title) return currentChat.title
+  const firstUserMessage = messages.find(message => message.role === 'user')?.content
+  return firstUserMessage?.slice(0, 30) || 'chat'
+}
+
+function getRoleDisplayName(role: ChatMessage['role']): string {
+  if (role === 'user') return t('labelYou')
+  return role === 'chatgpt' ? 'ChatGPT' : 'Gemini'
+}
+
+function downloadBlobFile(blob: Blob, fileName: string): void {
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = fileName
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+function setExportButtonState(exporting: boolean): void {
+  isExportingChat = exporting
+  exportChatBtn.disabled = exporting
+  exportChatBtn.classList.toggle('is-loading', exporting)
+  exportChatBtn.title = exporting ? t('exportingChat') : t('downloadChat')
+  exportChatBtn.setAttribute('aria-label', exporting ? t('exportingChat') : t('downloadChat'))
+}
+
+function convertHtmlToMarkdown(
+  html: string,
+  registerImage: (src: string, alt: string) => string,
+): string {
+  const template = document.createElement('template')
+  template.innerHTML = sanitizeAiHtml(html)
+
+  const convertNode = (node: Node, listDepth = 0): string => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return node.textContent ?? ''
+    }
+    if (!(node instanceof HTMLElement)) return ''
+
+    const text = Array.from(node.childNodes).map(child => convertNode(child, listDepth)).join('')
+    switch (node.tagName) {
+      case 'BR':
+        return '\n'
+      case 'P':
+      case 'DIV':
+      case 'SECTION':
+      case 'ARTICLE': {
+        const value = text.trim()
+        return value ? `${value}\n\n` : ''
+      }
+      case 'STRONG':
+      case 'B':
+        return `**${text.trim()}**`
+      case 'EM':
+      case 'I':
+        return `*${text.trim()}*`
+      case 'A': {
+        const href = node.getAttribute('href') ?? ''
+        const label = text.trim() || href
+        return href ? `[${label}](${href})` : label
+      }
+      case 'IMG': {
+        const src = node.getAttribute('src')?.trim() ?? ''
+        if (!src) return ''
+        const alt = node.getAttribute('alt')?.trim() ?? 'image'
+        const path = registerImage(src, alt)
+        return path ? `![${alt}](${path})\n\n` : ''
+      }
+      case 'PRE': {
+        const codeText = node.textContent?.replace(/\n$/, '') ?? ''
+        return codeText ? `\`\`\`\n${codeText}\n\`\`\`\n\n` : ''
+      }
+      case 'CODE':
+        return node.closest('pre') ? text : `\`${text.trim()}\``
+      case 'UL': {
+        const items = Array.from(node.children)
+          .map(child => child instanceof HTMLElement ? `${'  '.repeat(listDepth)}- ${convertNode(child, listDepth + 1).trim()}` : '')
+          .filter(Boolean)
+        return items.length > 0 ? `${items.join('\n')}\n\n` : ''
+      }
+      case 'OL': {
+        const items = Array.from(node.children)
+          .map((child, index) => child instanceof HTMLElement ? `${'  '.repeat(listDepth)}${index + 1}. ${convertNode(child, listDepth + 1).trim()}` : '')
+          .filter(Boolean)
+        return items.length > 0 ? `${items.join('\n')}\n\n` : ''
+      }
+      case 'LI':
+        return text.replace(/\n{3,}/g, '\n\n').trim()
+      case 'BLOCKQUOTE': {
+        const value = text.trim()
+        return value ? `${value.split('\n').map(line => `> ${line}`).join('\n')}\n\n` : ''
+      }
+      case 'H1':
+      case 'H2':
+      case 'H3':
+      case 'H4':
+      case 'H5':
+      case 'H6': {
+        const level = Number(node.tagName.slice(1))
+        return `${'#'.repeat(level)} ${text.trim()}\n\n`
+      }
+      case 'HR':
+        return '---\n\n'
+      default:
+        return text
+    }
+  }
+
+  return Array.from(template.content.childNodes)
+    .map(node => convertNode(node).trimEnd())
+    .filter(Boolean)
+    .join('\n\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
+async function exportCurrentChat(): Promise<void> {
+  if (messages.length === 0) {
+    window.alert(t('exportEmpty'))
+    return
+  }
+
+  setExportButtonState(true)
+  try {
+    const zip = new JSZip()
+    const imageEntries = new Map<string, { path: string, alt: string }>()
+    let imageIndex = 0
+
+    const registerImage = (src: string, alt: string): string => {
+      if (!imageEntries.has(src)) {
+        imageIndex += 1
+        imageEntries.set(src, {
+          path: `images/image-${String(imageIndex).padStart(3, '0')}${inferImageExtension(src)}`,
+          alt,
+        })
+      }
+      return imageEntries.get(src)?.path ?? ''
+    }
+
+    const markdownParts = [
+      `# ${getCurrentChatTitle()}`,
+      '',
+      `- Exported At: ${new Date().toISOString()}`,
+      '',
+    ]
+
+    for (const message of messages) {
+      markdownParts.push(`## ${getRoleDisplayName(message.role)}`)
+      markdownParts.push('')
+
+      if (message.role === 'user' || message.contentFormat !== 'html') {
+        markdownParts.push(message.content.trim())
+      } else {
+        markdownParts.push(convertHtmlToMarkdown(message.content, registerImage))
+      }
+
+      markdownParts.push('')
+    }
+
+    zip.file('chat.md', markdownParts.join('\n').replace(/\n{3,}/g, '\n\n').trim())
+
+    for (const [src, entry] of imageEntries) {
+      try {
+        const response = await fetch(src)
+        if (!response.ok) continue
+        const blob = await response.blob()
+        zip.file(entry.path, blob)
+      } catch {}
+    }
+
+    const archiveBlob = await zip.generateAsync({ type: 'blob' })
+    const fileName = `${sanitizeFileName(getCurrentChatTitle())}.zip`
+    downloadBlobFile(archiveBlob, fileName)
+  } catch (error) {
+    console.error('Failed to export chat:', error)
+    window.alert(t('exportFailed'))
+  } finally {
+    setExportButtonState(false)
+  }
 }
 
 // 简单但可靠的 Markdown 解析器
@@ -487,12 +818,79 @@ function renderLanguageOptions(): void {
   }
 }
 
+function isProviderEnabled(site: SiteRole): boolean {
+  return activeProviders[site] !== false
+}
+
+function getEnabledProviders(): SiteRole[] {
+  return (Object.keys(activeProviders) as SiteRole[]).filter(isProviderEnabled)
+}
+
+function renderProviderOptions(): void {
+  const options = providerOptionsEl.querySelectorAll<HTMLButtonElement>('.provider-option')
+  for (const option of options) {
+    const site = option.dataset.provider as SiteRole | undefined
+    if (!site) continue
+    option.classList.toggle('active', isProviderEnabled(site))
+    option.setAttribute('aria-pressed', String(isProviderEnabled(site)))
+  }
+}
+
+function applyProviderVisibility(): void {
+  chatgptFrameWrapperEl.hidden = !isProviderEnabled('chatgpt')
+  geminiFrameWrapperEl.hidden = !isProviderEnabled('gemini')
+  statusChatgpt.hidden = !isProviderEnabled('chatgpt')
+  statusGemini.hidden = !isProviderEnabled('gemini')
+  aiPanelEl.classList.toggle('single-provider', getEnabledProviders().length === 1)
+}
+
+function saveActiveProviders(): void {
+  try {
+    localStorage.setItem(ACTIVE_PROVIDERS_KEY, JSON.stringify(activeProviders))
+  } catch (e) {
+    console.error('Failed to save active providers:', e)
+  }
+}
+
+function setProviderEnabled(site: SiteRole, enabled: boolean): void {
+  if (!enabled && getEnabledProviders().length === 1) {
+    return
+  }
+
+  activeProviders = {
+    ...activeProviders,
+    [site]: enabled,
+  }
+
+  renderProviderOptions()
+  applyProviderVisibility()
+  saveActiveProviders()
+}
+
+function initializeActiveProviders(): void {
+  try {
+    const stored = localStorage.getItem(ACTIVE_PROVIDERS_KEY)
+    if (!stored) return
+    const parsed = JSON.parse(stored) as Partial<Record<SiteRole, boolean>>
+    activeProviders = {
+      chatgpt: parsed.chatgpt !== false,
+      gemini: parsed.gemini !== false,
+    }
+    if (getEnabledProviders().length === 0) {
+      activeProviders.chatgpt = true
+    }
+  } catch (e) {
+    console.error('Failed to load active providers:', e)
+  }
+}
+
 function updateStaticTexts(): void {
   document.documentElement.lang = currentLanguage
   document.title = t('chatTitle')
   newChatLabelEl.textContent = t('newChat')
   sidebarNavSearchLabelEl.textContent = t('searchChat')
   sidebarSectionRecentEl.textContent = t('recent')
+  settingsProviderTitleEl.textContent = t('providers')
   settingsThemeTitleEl.textContent = t('theme')
   settingsLanguageTitleEl.textContent = t('language')
   inputEl.placeholder = t('inputPlaceholder')
@@ -508,6 +906,10 @@ function updateStaticTexts(): void {
   sidebarRailNewChatBtn.title = t('newChat')
   sidebarRailSearchBtn.title = t('searchChat')
   sidebarRailThemeBtn.title = t('settings')
+  if (!isExportingChat) {
+    exportChatBtn.title = t('downloadChat')
+    exportChatBtn.setAttribute('aria-label', t('downloadChat'))
+  }
 
   const themeButtons = themeOptionsEl.querySelectorAll<HTMLButtonElement>('.theme-option')
   for (const button of themeButtons) {
@@ -520,6 +922,7 @@ function updateStaticTexts(): void {
 function applyLanguage(language: LanguageMode): void {
   currentLanguage = language
   updateStaticTexts()
+  renderProviderOptions()
   renderThemeOptions()
   renderLanguageOptions()
   renderHistoryList()
@@ -801,6 +1204,7 @@ function deleteChat(chatId: string): void {
 
 // 创建新对话
 function createNewChat(): void {
+  const enabledProviders = getEnabledProviders()
   currentChatId = generateId()
   messages = []
   currentSessionUrls = {}
@@ -809,7 +1213,7 @@ function createNewChat(): void {
   toggleSettingsPopover(false)
   closeSearchOverlay()
   renderHistoryList()
-  chrome.runtime.sendMessage({ type: 'START_NEW_CHAT' })
+  chrome.runtime.sendMessage({ type: 'START_NEW_CHAT', activeSites: enabledProviders })
 }
 
 // 打开侧边栏
@@ -1056,9 +1460,7 @@ function renderMessages(): void {
         // 用户消息纯文本显示
         contentEl.textContent = msg.content
       } else {
-        contentEl.innerHTML = msg.contentFormat === 'html'
-          ? sanitizeAiHtml(msg.content)
-          : simpleMarkdown(msg.content)
+        renderAiContent(contentEl, msg.content, msg.contentFormat === 'html' ? 'html' : 'text')
       }
 
       if (msg.content === '正在思考...' || msg.isStreaming) {
@@ -1098,9 +1500,7 @@ function updateMessageContent(
     if (msg && msg.role === 'user') {
       contentEl.textContent = content
     } else {
-      contentEl.innerHTML = contentFormat === 'html'
-        ? sanitizeAiHtml(content)
-        : simpleMarkdown(content)
+      renderAiContent(contentEl, content, contentFormat)
     }
     if (isFinal) {
       contentEl.classList.remove('thinking')
@@ -1127,6 +1527,8 @@ function updateMessageContent(
 function sendMessage(): void {
   const content = inputEl.value.trim()
   if (!content) return
+  const enabledProviders = getEnabledProviders()
+  if (enabledProviders.length === 0) return
 
   // 如果没有当前对话 ID，创建一个
   if (!currentChatId) {
@@ -1143,25 +1545,16 @@ function sendMessage(): void {
     timestamp: Date.now(),
   })
 
-  const chatgptMsgId = generateId() + '-chatgpt'
-  const geminiMsgId = generateId() + '-gemini'
-
-  messages.push({
-    id: chatgptMsgId,
-    role: 'chatgpt',
-    content: '正在思考...',
-    contentFormat: 'text',
-    timestamp: Date.now(),
-    isStreaming: true,
-  })
-  messages.push({
-    id: geminiMsgId,
-    role: 'gemini',
-    content: '正在思考...',
-    contentFormat: 'text',
-    timestamp: Date.now(),
-    isStreaming: true,
-  })
+  for (const site of enabledProviders) {
+    messages.push({
+      id: generateId() + `-${site}`,
+      role: site,
+      content: '正在思考...',
+      contentFormat: 'text',
+      timestamp: Date.now(),
+      isStreaming: true,
+    })
+  }
 
   renderMessages()
   inputEl.value = ''
@@ -1169,7 +1562,7 @@ function sendMessage(): void {
   // 保存初始消息
   saveCurrentChat()
 
-  chrome.runtime.sendMessage({ type: 'SEND_PROMPT', content })
+  chrome.runtime.sendMessage({ type: 'SEND_PROMPT', content, activeSites: enabledProviders })
 }
 
 function updateStatus(site: string, status: string): void {
@@ -1189,6 +1582,7 @@ function updateStatus(site: string, status: string): void {
 chrome.runtime.onMessage.addListener((message) => {
   if (message.type === 'ROLE_REPLY') {
     const site = message.site as 'chatgpt' | 'gemini'
+    if (!isProviderEnabled(site)) return
     const isFinal = message.isFinal !== false // 默认 true
     const contentFormat = message.contentFormat === 'html' ? 'html' : 'text'
     updateCurrentSessionUrl(site, message.pageUrl)
@@ -1214,6 +1608,7 @@ chrome.runtime.onMessage.addListener((message) => {
 
   if (message.type === 'ROLE_STATUS') {
     if (message.site === 'chatgpt' || message.site === 'gemini') {
+      if (!isProviderEnabled(message.site)) return
       updateCurrentSessionUrl(message.site, message.pageUrl)
     }
     updateStatus(message.site, message.status)
@@ -1222,6 +1617,9 @@ chrome.runtime.onMessage.addListener((message) => {
 
 // 事件监听
 sendBtn.addEventListener('click', sendMessage)
+exportChatBtn.addEventListener('click', () => {
+  void exportCurrentChat()
+})
 inputEl.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault()
@@ -1248,6 +1646,16 @@ overlayEl.addEventListener('click', closeSidebar)
 newChatBtn.addEventListener('click', () => {
   createNewChat()
   closeSidebar()
+})
+providerOptionsEl.addEventListener('click', (event) => {
+  const target = event.target as HTMLElement
+  const button = target.closest<HTMLButtonElement>('.provider-option')
+  if (!button) return
+
+  const site = button.dataset.provider
+  if (site === 'chatgpt' || site === 'gemini') {
+    setProviderEnabled(site, !isProviderEnabled(site))
+  }
 })
 themeOptionsEl.addEventListener('click', (event) => {
   const target = event.target as HTMLElement
@@ -1293,9 +1701,12 @@ document.addEventListener('keydown', (event) => {
 // 初始化
 initializeSidebarCollapsedState()
 initializeLanguage()
+initializeActiveProviders()
 initializeTheme()
 applyLanguage(currentLanguage)
 loadHistory()
 renderHistoryList()
 initializeResizableLayout()
 renderLanguageOptions()
+renderProviderOptions()
+applyProviderVisibility()

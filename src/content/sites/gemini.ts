@@ -22,7 +22,10 @@ const CONTENT_ROOT_SELECTORS = [
   '.response-content',
 ]
 const RESPONSE_CONTAINER_SELECTORS = 'model-response, message-content, .response-content'
-const EXTRA_IMAGE_SKIP_SELECTORS = 'nav, form'
+const CAROUSEL_SELECTOR = 'image-carousel'
+const CAROUSEL_DOT_SELECTOR = '.carousel-dots .dot'
+const CAROUSEL_PREV_SELECTOR = 'button[aria-label*="前"], button[aria-label*="previous"], button[aria-label*="Previous"]'
+const CAROUSEL_NEXT_SELECTOR = 'button[aria-label*="次"], button[aria-label*="next"], button[aria-label*="Next"]'
 
 function escapeHtml(text: string): string {
   return text
@@ -34,12 +37,177 @@ function escapeHtml(text: string): string {
 
 function sanitizeHref(href: string | null): string {
   if (!href) return ''
-  return /^https?:\/\//i.test(href) ? href : ''
+  const normalizedHref = href.trim()
+  return /^https?:\/\//i.test(normalizedHref) ? normalizedHref : ''
 }
 
 function sanitizeImageSrc(src: string | null): string {
   if (!src) return ''
-  return /^(https?:\/\/|data:image\/|blob:)/i.test(src) ? src : ''
+  const normalizedSrc = src.trim()
+  return /^(https?:\/\/|data:image\/|blob:)/i.test(normalizedSrc) ? normalizedSrc : ''
+}
+
+function extractUrlsFromSrcset(srcset: string | null): string[] {
+  if (!srcset) return []
+  return srcset
+    .split(',')
+    .map(part => sanitizeImageSrc(part.trim().split(/\s+/)[0] ?? ''))
+    .filter(Boolean)
+}
+
+function extractUrlsFromStyle(styleValue: string | null): string[] {
+  if (!styleValue) return []
+  const matches = Array.from(styleValue.matchAll(/url\((['"]?)(.*?)\1\)/g))
+  return matches
+    .map(match => sanitizeImageSrc(match[2] ?? ''))
+    .filter(Boolean)
+}
+
+function collectContainerImageHtml(container: Element): string {
+  const seen = new Set<string>()
+  const parts: string[] = []
+
+  const addImage = (src: string, alt = ''): void => {
+    const nextSrc = sanitizeImageSrc(src)
+    if (!nextSrc || seen.has(nextSrc)) return
+    seen.add(nextSrc)
+    parts.push(`<img src="${escapeHtml(nextSrc)}" alt="${escapeHtml(alt)}">`)
+  }
+
+  for (const img of Array.from(container.querySelectorAll('img'))) {
+    addImage((img as HTMLImageElement).currentSrc || img.getAttribute('src') || '', img.getAttribute('alt') ?? '')
+    for (const src of extractUrlsFromSrcset(img.getAttribute('srcset'))) {
+      addImage(src, img.getAttribute('alt') ?? '')
+    }
+  }
+
+  for (const source of Array.from(container.querySelectorAll('source'))) {
+    for (const src of extractUrlsFromSrcset(source.getAttribute('srcset'))) {
+      addImage(src)
+    }
+  }
+
+  const imageDataAttrs = ['data-src', 'data-image-src', 'data-image-url', 'data-full-image-url', 'data-thumbnail-url']
+  for (const el of Array.from(container.querySelectorAll<HTMLElement>('*'))) {
+    for (const attr of imageDataAttrs) {
+      const value = el.getAttribute(attr)
+      if (value) addImage(value, el.getAttribute('aria-label') ?? '')
+    }
+    for (const src of extractUrlsFromStyle(el.getAttribute('style'))) {
+      addImage(src, el.getAttribute('aria-label') ?? '')
+    }
+  }
+
+  return parts.join('')
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms))
+}
+
+function isButtonUsable(button: HTMLButtonElement | null): button is HTMLButtonElement {
+  if (!button) return false
+  return !button.disabled && button.getAttribute('aria-disabled') !== 'true'
+}
+
+function getCarouselActiveIndex(carousel: Element): number {
+  const dots = Array.from(carousel.querySelectorAll(CAROUSEL_DOT_SELECTOR))
+  const activeIndex = dots.findIndex(dot => dot.classList.contains('active'))
+  return activeIndex >= 0 ? activeIndex : 0
+}
+
+function getCarouselImageUrls(carousel: Element): string[] {
+  const fullSizeUrls: string[] = []
+  const previewUrls: string[] = []
+  const pushUrl = (target: string[], value: string | null): void => {
+    const nextValue = sanitizeImageSrc(value)
+    if (nextValue && !target.includes(nextValue)) {
+      target.push(nextValue)
+    }
+  }
+
+  for (const el of Array.from(carousel.querySelectorAll<HTMLElement>('[data-full-size-image-uri]'))) {
+    pushUrl(fullSizeUrls, el.getAttribute('data-full-size-image-uri'))
+  }
+
+  if (fullSizeUrls.length > 0) {
+    return fullSizeUrls
+  }
+
+  for (const img of Array.from(carousel.querySelectorAll<HTMLImageElement>('img'))) {
+    pushUrl(previewUrls, img.currentSrc || img.getAttribute('src'))
+    for (const src of extractUrlsFromSrcset(img.getAttribute('srcset'))) {
+      pushUrl(previewUrls, src)
+    }
+  }
+
+  return previewUrls
+}
+
+function buildImageHtml(urls: string[]): string {
+  return urls
+    .map(src => `<img src="${escapeHtml(src)}" alt="">`)
+    .join('')
+}
+
+async function captureCarouselReply(container: Element): Promise<CapturedReply> {
+  const carousel = container.querySelector(CAROUSEL_SELECTOR)
+  if (!carousel) {
+    return captureReply(container)
+  }
+
+  const root = getContentRoot(container)
+  const originalIndex = getCarouselActiveIndex(carousel)
+  const seenSlides = new Set<string>()
+  const collectedUrls: string[] = []
+
+  const addCurrentSlide = (): void => {
+    const slideUrls = getCarouselImageUrls(carousel)
+    const signature = slideUrls.join('|')
+    if (!signature || seenSlides.has(signature)) return
+    seenSlides.add(signature)
+    for (const url of slideUrls) {
+      if (!collectedUrls.includes(url)) {
+        collectedUrls.push(url)
+      }
+    }
+  }
+
+  let prevGuard = 0
+  while (prevGuard < 12) {
+    const prevButton = carousel.querySelector<HTMLButtonElement>(CAROUSEL_PREV_SELECTOR)
+    if (!isButtonUsable(prevButton)) break
+    prevButton.click()
+    await sleep(180)
+    prevGuard += 1
+  }
+
+  addCurrentSlide()
+
+  let nextGuard = 0
+  while (nextGuard < 12) {
+    const nextButton = carousel.querySelector<HTMLButtonElement>(CAROUSEL_NEXT_SELECTOR)
+    if (!isButtonUsable(nextButton)) break
+    nextButton.click()
+    await sleep(180)
+    addCurrentSlide()
+    nextGuard += 1
+  }
+
+  const restoreSteps = Math.max(0, collectedUrls.length - 1 - originalIndex)
+  for (let i = 0; i < restoreSteps; i += 1) {
+    const prevButton = carousel.querySelector<HTMLButtonElement>(CAROUSEL_PREV_SELECTOR)
+    if (!isButtonUsable(prevButton)) break
+    prevButton.click()
+    await sleep(120)
+  }
+
+  const html = normalizeHtml(`${serializeNode(root)}${buildImageHtml(collectedUrls) || collectContainerImageHtml(container)}`)
+  const fallbackText = (container.textContent ?? '').replace(/\s+/g, ' ').trim()
+  return {
+    content: html || escapeHtml(fallbackText),
+    format: 'html',
+  }
 }
 
 function getContentRoot(container: Element): Element {
@@ -60,24 +228,6 @@ function getContentRoot(container: Element): Element {
     return textCandidate.node
   }
   return container
-}
-
-function getExtraImageHtml(container: Element, root: Element): string {
-  const seen = new Set<string>()
-  const images = Array.from(container.querySelectorAll('img'))
-
-  return images
-    .filter((img) => !root.contains(img))
-    .filter((img) => !img.closest(EXTRA_IMAGE_SKIP_SELECTORS))
-    .map((img) => {
-      const src = sanitizeImageSrc(img.getAttribute('src'))
-      if (!src || seen.has(src)) return ''
-      seen.add(src)
-      const alt = escapeHtml(img.getAttribute('alt') ?? '')
-      return `<img src="${escapeHtml(src)}" alt="${alt}">`
-    })
-    .filter(Boolean)
-    .join('')
 }
 
 function serializeNode(node: Node): string {
@@ -123,10 +273,7 @@ function serializeNode(node: Node): string {
     case 'BUTTON':
       return inner
     case 'IMG': {
-      const src = sanitizeImageSrc(node.getAttribute('src'))
-      if (!src) return ''
-      const alt = escapeHtml(node.getAttribute('alt') ?? '')
-      return `<img src="${escapeHtml(src)}" alt="${alt}">`
+      return ''
     }
     case 'UL':
       return `<ul>${inner}</ul>`
@@ -163,7 +310,7 @@ function normalizeHtml(html: string): string {
 
 function captureReply(container: Element): CapturedReply {
   const root = getContentRoot(container)
-  const html = normalizeHtml(`${serializeNode(root)}${getExtraImageHtml(container, root)}`)
+  const html = normalizeHtml(`${serializeNode(root)}${collectContainerImageHtml(container)}`)
   const fallbackText = (container.textContent ?? '').replace(/\s+/g, ' ').trim()
   return {
     content: html || escapeHtml(fallbackText),
@@ -178,7 +325,8 @@ export function createGeminiAdapter(): ChatSiteAdapter {
     getResponseContainers(): Element[] {
       const candidates = [...document.querySelectorAll(RESPONSE_SELECTORS)]
       const containers = candidates.map((node) => node.closest(RESPONSE_CONTAINER_SELECTORS) ?? node)
-      return Array.from(new Set(containers))
+      const uniqueContainers = Array.from(new Set(containers))
+      return uniqueContainers
     },
 
     getAllAssistantReplies(): CapturedReply[] {
@@ -188,6 +336,10 @@ export function createGeminiAdapter(): ChatSiteAdapter {
 
     readResponse(node: Node): CapturedReply {
       return captureReply(node as Element)
+    },
+
+    async captureFinalReply(container: Element): Promise<CapturedReply | null> {
+      return captureCarouselReply(container)
     },
 
     isGenerating(): boolean {

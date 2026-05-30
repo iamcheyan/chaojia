@@ -16,6 +16,9 @@
     "https://chatgpt.com/*",
     "https://*.chatgpt.com/*",
     "https://chat.openai.com/*",
+    "https://openai.com/*",
+    "https://*.openai.com/*",
+    "https://images.openai.com/*",
     "https://gemini.google.com/*",
     "https://*.gemini.google.com/*",
     "https://accounts.google.com/*",
@@ -29,7 +32,19 @@
     "extension_pages": "script-src 'self'; object-src 'self'; frame-src https://chatgpt.com https://*.chatgpt.com https://chat.openai.com https://gemini.google.com https://*.gemini.google.com https://accounts.google.com https://apis.google.com https://ogs.google.com https://www.google.com https://*.googleusercontent.com https://*.gstatic.com;"
   },
   "action": {
-    "default_title": "ChaoJia"
+    "default_title": "ChaoJia",
+    "default_icon": {
+      "16": "icons/gemini.png",
+      "32": "icons/gemini.png",
+      "48": "icons/gemini.png",
+      "128": "icons/gemini.png"
+    }
+  },
+  "icons": {
+    "16": "icons/gemini.png",
+    "32": "icons/gemini.png",
+    "48": "icons/gemini.png",
+    "128": "icons/gemini.png"
   },
   "content_scripts": [
     {

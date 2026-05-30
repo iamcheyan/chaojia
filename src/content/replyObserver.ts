@@ -46,6 +46,12 @@ export function createReplyObserver(options: ReplyObserverOptions): {
     return replies.length > 0 ? replies[replies.length - 1] : null
   }
 
+  function getLatestContainer(): Element | null {
+    const all = siteAdapter.getResponseContainers()
+    const newOnes = all.filter(isNewContainer)
+    return newOnes.length > 0 ? newOnes[newOnes.length - 1] : null
+  }
+
   function sendStreamUpdate() {
     const reply = getLatestReply()
     if (!reply || reply.content.length === 0) return
@@ -67,9 +73,12 @@ export function createReplyObserver(options: ReplyObserverOptions): {
     if (!siteAdapter.isGenerating()) {
       // 再等一小会儿，确保文本完全稳定
       if (stabilityTimer === null) {
-        stabilityTimer = setTimeout(() => {
+        stabilityTimer = setTimeout(async () => {
           if (!active) return
-          const finalReply = getLatestReply()
+          const latestContainer = getLatestContainer()
+          const finalReply = latestContainer && siteAdapter.captureFinalReply
+            ? await siteAdapter.captureFinalReply(latestContainer)
+            : getLatestReply()
           if (finalReply && finalReply.content.length > 0) {
             onReply(finalReply, true) // isFinal = true，表示这是最终回复
             onStatusChange('idle')

@@ -34,6 +34,10 @@ if (typeof (window as any).__CHAOJIA_LOADED__ === 'undefined') {
 
     chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       if (message.type === 'FILL_AND_SEND') {
+        if (Array.isArray(message.activeSites) && !message.activeSites.includes(siteAdapter.id)) {
+          sendResponse({ ok: true, skipped: true })
+          return false
+        }
         const { content, autoSend } = message
         replyObserver.captureBaseline()
         replyObserver.startPolling()
@@ -52,6 +56,10 @@ if (typeof (window as any).__CHAOJIA_LOADED__ === 'undefined') {
       }
 
       if (message.type === 'START_NEW_CHAT') {
+        if (Array.isArray(message.activeSites) && !message.activeSites.includes(siteAdapter.id)) {
+          sendResponse({ ok: true, skipped: true })
+          return false
+        }
         siteAdapter.startNewChat()
           .then((ok) => sendResponse({ ok }))
           .catch((err: Error) => {

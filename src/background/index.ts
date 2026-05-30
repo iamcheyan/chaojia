@@ -21,6 +21,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       chrome.tabs.sendMessage(chatTabId, {
         type: 'FILL_AND_SEND',
         content: message.content,
+        activeSites: message.activeSites,
       }).catch(() => {})
     }
     sendResponse({ ok: true })
@@ -32,6 +33,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (chatTabId) {
       chrome.tabs.sendMessage(chatTabId, {
         type: 'START_NEW_CHAT',
+        activeSites: message.activeSites,
       }).catch(() => {})
     }
     sendResponse({ ok: true })

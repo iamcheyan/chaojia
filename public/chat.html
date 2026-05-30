@@ -53,6 +53,21 @@
         </button>
         <div id="settings-popover" class="settings-popover">
           <div class="settings-group">
+            <div id="settings-provider-title" class="settings-group-title">供应商</div>
+            <div id="provider-options" class="provider-options">
+              <button class="provider-option active" data-provider="chatgpt" type="button">
+                <img class="provider-option-icon" src="./icons/chatgpt.png" alt="" aria-hidden="true">
+                <span class="provider-option-indicator" aria-hidden="true"></span>
+                <span class="provider-option-label">ChatGPT</span>
+              </button>
+              <button class="provider-option active" data-provider="gemini" type="button">
+                <img class="provider-option-icon" src="./icons/gemini.png" alt="" aria-hidden="true">
+                <span class="provider-option-indicator" aria-hidden="true"></span>
+                <span class="provider-option-label">Gemini</span>
+              </button>
+            </div>
+          </div>
+          <div class="settings-group">
             <div id="settings-theme-title" class="settings-group-title">主题</div>
             <div id="theme-options" class="settings-options settings-options-theme">
               <button class="theme-option" data-theme="wechat" title="WeChat">WeChat</button>
@@ -145,9 +160,18 @@
           <button id="menu-btn" class="menu-btn">☰</button>
         </div>
         <h1>ChaoJia</h1>
-        <div id="status-bar">
-          <span id="status-chatgpt" class="status">⚪ ChatGPT: 未连接</span>
-          <span id="status-gemini" class="status">⚪ Gemini: 未连接</span>
+        <div class="header-side">
+          <div id="status-bar">
+            <span id="status-chatgpt" class="status">⚪ ChatGPT: 未连接</span>
+            <span id="status-gemini" class="status">⚪ Gemini: 未连接</span>
+          </div>
+          <button id="export-chat-btn" class="header-icon-btn" type="button" title="下载对话" aria-label="下载对话">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" class="icon" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3v11"></path>
+              <path d="M8 10.5 12 14.5 16 10.5"></path>
+              <path d="M4 17.5V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1.5"></path>
+            </svg>
+          </button>
         </div>
       </header>
 
@@ -163,14 +187,14 @@
 
     <!-- Right: AI iframes -->
     <div id="ai-panel">
-      <div class="ai-frame-wrapper">
+      <div id="ai-frame-wrapper-chatgpt" class="ai-frame-wrapper" data-site="chatgpt">
         <div class="ai-frame-header">
           <img class="ai-frame-header-icon" src="./icons/chatgpt.png" alt="ChatGPT">
           <span class="ai-frame-header-text">ChatGPT</span>
         </div>
         <iframe id="frame-chatgpt" src="https://chatgpt.com/"></iframe>
       </div>
-      <div class="ai-frame-wrapper">
+      <div id="ai-frame-wrapper-gemini" class="ai-frame-wrapper" data-site="gemini">
         <div class="ai-frame-header">
           <img class="ai-frame-header-icon" src="./icons/gemini.png" alt="Gemini">
           <span class="ai-frame-header-text">Gemini</span>

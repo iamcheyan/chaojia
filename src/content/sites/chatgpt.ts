@@ -19,6 +19,8 @@ const ACTIVITY_INDICATORS =
   '.result-streaming[aria-busy="true"], [aria-busy="true"] .result-streaming, [data-testid*="thinking"], [data-testid*="reasoning"]'
 
 const STOP_RE = /stop|stopping|停止|中止/i
+const RATE_LIMIT_RE = /too many requests|request frequency is too high|rate limit|リクエストが多すぎます|リクエストの頻度が高すぎます|请求过多|频率过高/i
+const ACK_BUTTON_RE = /^(了解|知道了|确定|OK|Got it|Dismiss|承知しました?)$/i
 
 const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'SVG'])
 const CONTENT_ROOT_SELECTORS = [
@@ -39,12 +41,30 @@ function escapeHtml(text: string): string {
 
 function sanitizeHref(href: string | null): string {
   if (!href) return ''
-  return /^https?:\/\//i.test(href) ? href : ''
+  const normalizedHref = href.trim()
+  return /^https?:\/\//i.test(normalizedHref) ? normalizedHref : ''
 }
 
 function sanitizeImageSrc(src: string | null): string {
   if (!src) return ''
-  return /^(https?:\/\/|data:image\/|blob:)/i.test(src) ? src : ''
+  const normalizedSrc = src.trim()
+  return /^(https?:\/\/|data:image\/|blob:)/i.test(normalizedSrc) ? normalizedSrc : ''
+}
+
+function extractUrlsFromSrcset(srcset: string | null): string[] {
+  if (!srcset) return []
+  return srcset
+    .split(',')
+    .map(part => sanitizeImageSrc(part.trim().split(/\s+/)[0] ?? ''))
+    .filter(Boolean)
+}
+
+function extractUrlsFromStyle(styleValue: string | null): string[] {
+  if (!styleValue) return []
+  const matches = Array.from(styleValue.matchAll(/url\((['"]?)(.*?)\1\)/g))
+  return matches
+    .map(match => sanitizeImageSrc(match[2] ?? ''))
+    .filter(Boolean)
 }
 
 function getNodeTextLength(node: Element): number {
@@ -70,20 +90,43 @@ function getContentRoot(container: Element): Element {
 
 function getExtraImageHtml(container: Element, root: Element): string {
   const seen = new Set<string>()
-  const images = Array.from(container.querySelectorAll('img'))
+  const parts: string[] = []
 
-  return images
-    .filter((img) => !root.contains(img))
-    .filter((img) => !img.closest(EXTRA_IMAGE_SKIP_SELECTORS))
-    .map((img) => {
-      const src = sanitizeImageSrc(img.getAttribute('src'))
-      if (!src || seen.has(src)) return ''
-      seen.add(src)
-      const alt = escapeHtml(img.getAttribute('alt') ?? '')
-      return `<img src="${escapeHtml(src)}" alt="${alt}">`
-    })
-    .filter(Boolean)
-    .join('')
+  const addImage = (src: string, alt = ''): void => {
+    const normalizedSrc = sanitizeImageSrc(src)
+    if (!normalizedSrc || seen.has(normalizedSrc)) return
+    seen.add(normalizedSrc)
+    parts.push(`<img src="${escapeHtml(normalizedSrc)}" alt="${escapeHtml(alt)}">`)
+  }
+
+  for (const img of Array.from(container.querySelectorAll<HTMLImageElement>('img'))) {
+    if (root.contains(img) || img.closest(EXTRA_IMAGE_SKIP_SELECTORS)) continue
+    addImage(img.currentSrc || img.getAttribute('src') || '', img.getAttribute('alt') ?? '')
+    for (const src of extractUrlsFromSrcset(img.getAttribute('srcset'))) {
+      addImage(src, img.getAttribute('alt') ?? '')
+    }
+  }
+
+  for (const source of Array.from(container.querySelectorAll('source'))) {
+    if (root.contains(source) || source.closest(EXTRA_IMAGE_SKIP_SELECTORS)) continue
+    for (const src of extractUrlsFromSrcset(source.getAttribute('srcset'))) {
+      addImage(src)
+    }
+  }
+
+  const imageDataAttrs = ['data-src', 'data-image-src', 'data-image-url', 'data-full-image-url', 'data-thumbnail-url']
+  for (const el of Array.from(container.querySelectorAll<HTMLElement>('*'))) {
+    if (root.contains(el) || el.closest(EXTRA_IMAGE_SKIP_SELECTORS)) continue
+    for (const attr of imageDataAttrs) {
+      const value = el.getAttribute(attr)
+      if (value) addImage(value, el.getAttribute('aria-label') ?? '')
+    }
+    for (const src of extractUrlsFromStyle(el.getAttribute('style'))) {
+      addImage(src, el.getAttribute('aria-label') ?? '')
+    }
+  }
+
+  return parts.join('')
 }
 
 function serializeNode(node: Node): string {
@@ -129,7 +172,7 @@ function serializeNode(node: Node): string {
     case 'BUTTON':
       return inner
     case 'IMG': {
-      const src = sanitizeImageSrc(node.getAttribute('src'))
+      const src = sanitizeImageSrc((node as HTMLImageElement).currentSrc || node.getAttribute('src'))
       if (!src) return ''
       const alt = escapeHtml(node.getAttribute('alt') ?? '')
       return `<img src="${escapeHtml(src)}" alt="${alt}">`
@@ -167,6 +210,28 @@ function normalizeHtml(html: string): string {
   return html.replace(/(?:<div>\s*<\/div>|\s+\n)/g, '').trim()
 }
 
+function findRateLimitAckButton(): HTMLElement | null {
+  const buttons = [...document.querySelectorAll<HTMLElement>('button')]
+  for (const button of buttons) {
+    const label = (button.textContent ?? button.getAttribute('aria-label') ?? '').replace(/\s+/g, ' ').trim()
+    if (!ACK_BUTTON_RE.test(label)) continue
+
+    const scope = button.closest('[role="dialog"], [role="alertdialog"], [data-radix-portal], [data-headlessui-portal], body')
+    const scopeText = (scope?.textContent ?? '').replace(/\s+/g, ' ').trim()
+    if (RATE_LIMIT_RE.test(scopeText)) {
+      return button
+    }
+  }
+  return null
+}
+
+function dismissRateLimitDialog(): boolean {
+  const button = findRateLimitAckButton()
+  if (!button || !isClickableButton(button)) return false
+  button.click()
+  return true
+}
+
 function captureReply(container: Element): CapturedReply {
   const root = getContentRoot(container)
   const html = normalizeHtml(`${serializeNode(root)}${getExtraImageHtml(container, root)}`)
@@ -197,6 +262,8 @@ export function createChatGptAdapter(): ChatSiteAdapter {
     },
 
     isGenerating(): boolean {
+      dismissRateLimitDialog()
+
       // Look for stop button
       const buttons = [...document.querySelectorAll<HTMLElement>('button')]
       const hasStopButton = buttons.some(b => {
@@ -243,11 +310,14 @@ export function createChatGptAdapter(): ChatSiteAdapter {
     },
 
     async fillAndSend(content: string, autoSend = true): Promise<void> {
+      dismissRateLimitDialog()
       const editor = await waitForElement(EDITOR_SELECTORS, 10000)
       setContentEditableText(editor, content)
       if (!autoSend) return
       const sendBtn = await waitForClickableButton(SEND_BUTTON_SELECTORS, 10000, 'Send button not found or not clickable')
       sendBtn.click()
+      window.setTimeout(() => { dismissRateLimitDialog() }, 300)
+      window.setTimeout(() => { dismissRateLimitDialog() }, 1200)
     },
   }
 }
