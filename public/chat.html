@@ -65,6 +65,41 @@
                 <span class="provider-option-indicator" aria-hidden="true"></span>
                 <span class="provider-option-label">Gemini</span>
               </button>
+              <button class="provider-option active" data-provider="claude" type="button">
+                <img class="provider-option-icon" src="./icons/claude.svg" alt="" aria-hidden="true">
+                <span class="provider-option-indicator" aria-hidden="true"></span>
+                <span class="provider-option-label">Claude</span>
+              </button>
+              <button class="provider-option active" data-provider="deepseek" type="button">
+                <img class="provider-option-icon" src="./icons/deepseek.svg" alt="" aria-hidden="true">
+                <span class="provider-option-indicator" aria-hidden="true"></span>
+                <span class="provider-option-label">DeepSeek</span>
+              </button>
+              <button class="provider-option active" data-provider="kimi" type="button">
+                <img class="provider-option-icon" src="./icons/kimi.svg" alt="" aria-hidden="true">
+                <span class="provider-option-indicator" aria-hidden="true"></span>
+                <span class="provider-option-label">Kimi</span>
+              </button>
+              <button class="provider-option active" data-provider="doubao" type="button">
+                <img class="provider-option-icon" src="./icons/doubao.svg" alt="" aria-hidden="true">
+                <span class="provider-option-indicator" aria-hidden="true"></span>
+                <span class="provider-option-label">豆包</span>
+              </button>
+              <button class="provider-option active" data-provider="yiyan" type="button">
+                <img class="provider-option-icon" src="./icons/yiyan.svg" alt="" aria-hidden="true">
+                <span class="provider-option-indicator" aria-hidden="true"></span>
+                <span class="provider-option-label">文心一言</span>
+              </button>
+              <button class="provider-option active" data-provider="tongyi" type="button">
+                <img class="provider-option-icon" src="./icons/tongyi.svg" alt="" aria-hidden="true">
+                <span class="provider-option-indicator" aria-hidden="true"></span>
+                <span class="provider-option-label">通义千问</span>
+              </button>
+              <button class="provider-option active" data-provider="perplexity" type="button">
+                <img class="provider-option-icon" src="./icons/perplexity.svg" alt="" aria-hidden="true">
+                <span class="provider-option-indicator" aria-hidden="true"></span>
+                <span class="provider-option-label">Perplexity</span>
+              </button>
             </div>
           </div>
           <div class="settings-group">
@@ -162,8 +197,15 @@
         <h1>aigumi</h1>
         <div class="header-side">
           <div id="status-bar">
-            <span id="status-chatgpt" class="status">⚪ ChatGPT: 未连接</span>
-            <span id="status-gemini" class="status">⚪ Gemini: 未连接</span>
+            <span id="status-chatgpt" class="status">⚪ ChatGPT</span>
+            <span id="status-gemini" class="status">⚪ Gemini</span>
+            <span id="status-claude" class="status">⚪ Claude</span>
+            <span id="status-deepseek" class="status">⚪ DeepSeek</span>
+            <span id="status-kimi" class="status">⚪ Kimi</span>
+            <span id="status-doubao" class="status">⚪ 豆包</span>
+            <span id="status-yiyan" class="status">⚪ 文心一言</span>
+            <span id="status-tongyi" class="status">⚪ 通义千问</span>
+            <span id="status-perplexity" class="status">⚪ Perplexity</span>
           </div>
           <button id="export-chat-btn" class="header-icon-btn" type="button" title="下载对话" aria-label="下载对话">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" class="icon" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -178,7 +220,7 @@
       <main id="messages"></main>
 
       <footer id="composer">
-        <textarea id="input" placeholder="输入问题，同时发给 ChatGPT 和 Gemini..." rows="1"></textarea>
+        <textarea id="input" placeholder="输入问题，同时发给所有启用的 AI..." rows="1"></textarea>
         <button id="send-btn">发送</button>
       </footer>
     </div>
@@ -200,6 +242,55 @@
           <span class="ai-frame-header-text">Gemini</span>
         </div>
         <iframe id="frame-gemini" src="https://gemini.google.com/app"></iframe>
+      </div>
+      <div id="ai-frame-wrapper-claude" class="ai-frame-wrapper" data-site="claude">
+        <div class="ai-frame-header">
+          <img class="ai-frame-header-icon" src="./icons/claude.svg" alt="Claude">
+          <span class="ai-frame-header-text">Claude</span>
+        </div>
+        <iframe id="frame-claude" src="https://claude.ai/new"></iframe>
+      </div>
+      <div id="ai-frame-wrapper-deepseek" class="ai-frame-wrapper" data-site="deepseek">
+        <div class="ai-frame-header">
+          <img class="ai-frame-header-icon" src="./icons/deepseek.svg" alt="DeepSeek">
+          <span class="ai-frame-header-text">DeepSeek</span>
+        </div>
+        <iframe id="frame-deepseek" src="https://chat.deepseek.com/"></iframe>
+      </div>
+      <div id="ai-frame-wrapper-kimi" class="ai-frame-wrapper" data-site="kimi">
+        <div class="ai-frame-header">
+          <img class="ai-frame-header-icon" src="./icons/kimi.svg" alt="Kimi">
+          <span class="ai-frame-header-text">Kimi</span>
+        </div>
+        <iframe id="frame-kimi" src="https://kimi.moonshot.cn/"></iframe>
+      </div>
+      <div id="ai-frame-wrapper-doubao" class="ai-frame-wrapper" data-site="doubao">
+        <div class="ai-frame-header">
+          <img class="ai-frame-header-icon" src="./icons/doubao.svg" alt="豆包">
+          <span class="ai-frame-header-text">豆包</span>
+        </div>
+        <iframe id="frame-doubao" src="https://www.doubao.com/chat/"></iframe>
+      </div>
+      <div id="ai-frame-wrapper-yiyan" class="ai-frame-wrapper" data-site="yiyan">
+        <div class="ai-frame-header">
+          <img class="ai-frame-header-icon" src="./icons/yiyan.svg" alt="文心一言">
+          <span class="ai-frame-header-text">文心一言</span>
+        </div>
+        <iframe id="frame-yiyan" src="https://yiyan.baidu.com/"></iframe>
+      </div>
+      <div id="ai-frame-wrapper-tongyi" class="ai-frame-wrapper" data-site="tongyi">
+        <div class="ai-frame-header">
+          <img class="ai-frame-header-icon" src="./icons/tongyi.svg" alt="通义千问">
+          <span class="ai-frame-header-text">通义千问</span>
+        </div>
+        <iframe id="frame-tongyi" src="https://tongyi.aliyun.com/qianwen/"></iframe>
+      </div>
+      <div id="ai-frame-wrapper-perplexity" class="ai-frame-wrapper" data-site="perplexity">
+        <div class="ai-frame-header">
+          <img class="ai-frame-header-icon" src="./icons/perplexity.svg" alt="Perplexity">
+          <span class="ai-frame-header-text">Perplexity</span>
+        </div>
+        <iframe id="frame-perplexity" src="https://www.perplexity.ai/"></iframe>
       </div>
     </div>
   </div>

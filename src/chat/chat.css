@@ -1297,6 +1297,34 @@ body.resizing #ai-panel iframe {
   background: #ffffff;
 }
 
+.message-avatar-claude {
+  background: #D4A574;
+}
+
+.message-avatar-deepseek {
+  background: #4A90E2;
+}
+
+.message-avatar-kimi {
+  background: #FF6B9D;
+}
+
+.message-avatar-doubao {
+  background: #34C759;
+}
+
+.message-avatar-yiyan {
+  background: #333333;
+}
+
+.message-avatar-tongyi {
+  background: #FF6A00;
+}
+
+.message-avatar-perplexity {
+  background: #20B2AA;
+}
+
 .message-avatar-fallback {
   line-height: 1;
 }
@@ -1400,6 +1428,69 @@ body[data-theme='chatgpt-dark'] .message-avatar {
 }
 
 .message-gemini .message-content {
+  background: var(--message-ai-bg);
+  color: var(--message-ai-text);
+  border: 1px solid var(--message-ai-border);
+  border-radius: var(--message-ai-radius);
+  padding: var(--message-ai-padding);
+  box-shadow: var(--message-ai-shadow);
+}
+
+.message-claude .message-content {
+  background: var(--message-ai-bg);
+  color: var(--message-ai-text);
+  border: 1px solid var(--message-ai-border);
+  border-radius: var(--message-ai-radius);
+  padding: var(--message-ai-padding);
+  box-shadow: var(--message-ai-shadow);
+}
+
+.message-deepseek .message-content {
+  background: var(--message-ai-bg);
+  color: var(--message-ai-text);
+  border: 1px solid var(--message-ai-border);
+  border-radius: var(--message-ai-radius);
+  padding: var(--message-ai-padding);
+  box-shadow: var(--message-ai-shadow);
+}
+
+.message-kimi .message-content {
+  background: var(--message-ai-bg);
+  color: var(--message-ai-text);
+  border: 1px solid var(--message-ai-border);
+  border-radius: var(--message-ai-radius);
+  padding: var(--message-ai-padding);
+  box-shadow: var(--message-ai-shadow);
+}
+
+.message-doubao .message-content {
+  background: var(--message-ai-bg);
+  color: var(--message-ai-text);
+  border: 1px solid var(--message-ai-border);
+  border-radius: var(--message-ai-radius);
+  padding: var(--message-ai-padding);
+  box-shadow: var(--message-ai-shadow);
+}
+
+.message-yiyan .message-content {
+  background: var(--message-ai-bg);
+  color: var(--message-ai-text);
+  border: 1px solid var(--message-ai-border);
+  border-radius: var(--message-ai-radius);
+  padding: var(--message-ai-padding);
+  box-shadow: var(--message-ai-shadow);
+}
+
+.message-tongyi .message-content {
+  background: var(--message-ai-bg);
+  color: var(--message-ai-text);
+  border: 1px solid var(--message-ai-border);
+  border-radius: var(--message-ai-radius);
+  padding: var(--message-ai-padding);
+  box-shadow: var(--message-ai-shadow);
+}
+
+.message-perplexity .message-content {
   background: var(--message-ai-bg);
   color: var(--message-ai-text);
   border: 1px solid var(--message-ai-border);

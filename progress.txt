@@ -125,3 +125,32 @@ Started: 2026-05-30 16:08:03
   - Perplexity is an AI search engine with citation support - responses include reference links
   - New chat URL is `https://www.perplexity.ai/`
 ---
+
+## 2026-05-31 18:00 - US-009
+- Implemented multi-platform switching UI for all 9 AI providers
+- Updated `src/chat/index.ts` to support all providers: chatgpt, gemini, claude, deepseek, kimi, doubao, yiyan, tongyi, perplexity
+- Added `allSiteRoles` array and updated `SiteRole` type to include all providers
+- Updated `ChatSessionUrls` interface to include all providers
+- Updated `DEFAULT_SITE_URLS` with correct URLs for all providers
+- Updated `activeProviders` and `siteStatuses` to include all providers
+- Updated `initializeActiveProviders()` to load/save all provider states from localStorage
+- Updated `applyProviderVisibility()` to dynamically show/hide all provider frames
+- Updated `navigateSiteFrame()` to handle all providers using dynamic DOM queries
+- Updated `applySessionUrls()` to iterate over all providers
+- Updated `updateCurrentSessionUrl()` to validate site against allSiteRoles
+- Updated `getAvatarMarkup()` with icons for all providers
+- Updated `getRoleDisplayName()` with labels for all providers
+- Updated `updateStatus()` to dynamically update status for all providers
+- Updated `chrome.runtime.onMessage` listener to handle all providers
+- Added CSS styles for all new provider messages and avatars
+- Created SVG icons for claude, deepseek, kimi, doubao, yiyan, tongyi, perplexity
+- Updated `public/chat.html` to add iframes and provider options for all platforms
+- Updated status bar to show all 9 providers
+- Typecheck passes
+- Files changed: `src/chat/index.ts`, `src/chat/chat.css`, `public/chat.html`, `public/icons/*.svg`
+- **Learnings for future iterations:**
+  - Use dynamic DOM queries instead of hardcoded element references for better maintainability
+  - The `allSiteRoles` array pattern makes it easy to add new providers in the future
+  - Provider persistence works via localStorage with JSON serialization
+  - Each provider has its own iframe, status indicator, and provider toggle in settings
+---

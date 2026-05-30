@@ -6,16 +6,23 @@ import hljs from 'highlight.js/lib/common'
 type MessageContentFormat = 'text' | 'html'
 type ThemeMode = 'wechat' | 'chatgpt-light' | 'chatgpt-dark'
 type LanguageMode = 'zh-CN' | 'en' | 'ja'
-type SiteRole = 'chatgpt' | 'gemini'
+type SiteRole = 'chatgpt' | 'gemini' | 'claude' | 'deepseek' | 'kimi' | 'doubao' | 'yiyan' | 'tongyi' | 'perplexity'
 
 interface ChatSessionUrls {
   chatgpt?: string
   gemini?: string
+  claude?: string
+  deepseek?: string
+  kimi?: string
+  doubao?: string
+  yiyan?: string
+  tongyi?: string
+  perplexity?: string
 }
 
 interface ChatMessage {
   id: string
-  role: 'user' | 'chatgpt' | 'gemini'
+  role: 'user' | SiteRole
   content: string
   contentFormat?: MessageContentFormat
   timestamp: number
@@ -91,8 +98,6 @@ const aiPanelEl = document.getElementById('ai-panel') as HTMLDivElement
 const chatgptFrameWrapperEl = document.getElementById('ai-frame-wrapper-chatgpt') as HTMLDivElement
 const geminiFrameWrapperEl = document.getElementById('ai-frame-wrapper-gemini') as HTMLDivElement
 const panelResizerEl = document.getElementById('panel-resizer') as HTMLDivElement
-const chatgptFrameEl = document.getElementById('frame-chatgpt') as HTMLIFrameElement
-const geminiFrameEl = document.getElementById('frame-gemini') as HTMLIFrameElement
 const imageLightboxEl = document.getElementById('image-lightbox') as HTMLDivElement
 const imageLightboxImageEl = document.getElementById('image-lightbox-image') as HTMLImageElement
 const imageLightboxCounterEl = document.getElementById('image-lightbox-counter') as HTMLDivElement
@@ -104,6 +109,13 @@ const geminiIconUrl = chrome.runtime.getURL('icons/gemini.png')
 const DEFAULT_SITE_URLS: Record<SiteRole, string> = {
   chatgpt: 'https://chatgpt.com/',
   gemini: 'https://gemini.google.com/app',
+  claude: 'https://claude.ai/new',
+  deepseek: 'https://chat.deepseek.com/',
+  kimi: 'https://kimi.moonshot.cn/',
+  doubao: 'https://www.doubao.com/chat/',
+  yiyan: 'https://yiyan.baidu.com/',
+  tongyi: 'https://tongyi.aliyun.com/qianwen/',
+  perplexity: 'https://www.perplexity.ai/',
 }
 
 const TRANSLATIONS: Record<LanguageMode, Record<string, string>> = {
@@ -231,15 +243,30 @@ let currentLanguage: LanguageMode = 'zh-CN'
 let isSidebarCollapsed = false
 let isExportingChat = false
 let currentSessionUrls: ChatSessionUrls = {}
+const allSiteRoles: SiteRole[] = ['chatgpt', 'gemini', 'claude', 'deepseek', 'kimi', 'doubao', 'yiyan', 'tongyi', 'perplexity']
 let currentLightboxImages: string[] = []
 let currentLightboxIndex = 0
 let activeProviders: Record<SiteRole, boolean> = {
   chatgpt: true,
   gemini: true,
+  claude: true,
+  deepseek: true,
+  kimi: true,
+  doubao: true,
+  yiyan: true,
+  tongyi: true,
+  perplexity: true,
 }
 const siteStatuses: Record<SiteRole, string> = {
   chatgpt: 'offline',
   gemini: 'offline',
+  claude: 'offline',
+  deepseek: 'offline',
+  kimi: 'offline',
+  doubao: 'offline',
+  yiyan: 'offline',
+  tongyi: 'offline',
+  perplexity: 'offline',
 }
 
 function generateId(): string {
@@ -714,7 +741,18 @@ function getCurrentChatTitle(): string {
 
 function getRoleDisplayName(role: ChatMessage['role']): string {
   if (role === 'user') return t('labelYou')
-  return role === 'chatgpt' ? 'ChatGPT' : 'Gemini'
+  const labels: Record<SiteRole, string> = {
+    chatgpt: 'ChatGPT',
+    gemini: 'Gemini',
+    claude: 'Claude',
+    deepseek: 'DeepSeek',
+    kimi: 'Kimi',
+    doubao: '豆包',
+    yiyan: '文心一言',
+    tongyi: '通义千问',
+    perplexity: 'Perplexity',
+  }
+  return labels[role as SiteRole] || role
 }
 
 function downloadBlobFile(blob: Blob, fileName: string): void {
@@ -1197,6 +1235,13 @@ function initializeActiveProviders(): void {
     activeProviders = {
       chatgpt: parsed.chatgpt !== false,
       gemini: parsed.gemini !== false,
+      claude: parsed.claude !== false,
+      deepseek: parsed.deepseek !== false,
+      kimi: parsed.kimi !== false,
+      doubao: parsed.doubao !== false,
+      yiyan: parsed.yiyan !== false,
+      tongyi: parsed.tongyi !== false,
+      perplexity: parsed.perplexity !== false,
     }
     if (getEnabledProviders().length === 0) {
       activeProviders.chatgpt = true
@@ -1469,7 +1514,8 @@ function closeSearchOverlay(): void {
 
 function navigateSiteFrame(site: SiteRole, url?: string, forceReload = false): void {
   const targetUrl = url || DEFAULT_SITE_URLS[site]
-  const frame = site === 'chatgpt' ? chatgptFrameEl : geminiFrameEl
+  const frame = document.getElementById(`frame-${site}`) as HTMLIFrameElement | null
+  if (!frame) return
   if (forceReload) {
     frame.src = 'about:blank'
     requestAnimationFrame(() => {
@@ -1484,13 +1530,15 @@ function navigateSiteFrame(site: SiteRole, url?: string, forceReload = false): v
 }
 
 function applySessionUrls(sessionUrls?: ChatSessionUrls): void {
-  const shouldForceReload = !sessionUrls?.chatgpt && !sessionUrls?.gemini
-  navigateSiteFrame('chatgpt', sessionUrls?.chatgpt, shouldForceReload)
-  navigateSiteFrame('gemini', sessionUrls?.gemini, shouldForceReload)
+  const shouldForceReload = !sessionUrls || Object.values(sessionUrls).every(v => !v)
+  for (const site of allSiteRoles) {
+    navigateSiteFrame(site, sessionUrls?.[site], shouldForceReload)
+  }
 }
 
 function updateCurrentSessionUrl(site: SiteRole, pageUrl?: string): void {
   if (!pageUrl || !/^https?:\/\//i.test(pageUrl)) return
+  if (!allSiteRoles.includes(site)) return
   currentSessionUrls = {
     ...currentSessionUrls,
     [site]: pageUrl,
@@ -1726,14 +1774,32 @@ function initializeResizableLayout(): void {
 }
 
 function getAvatarMarkup(role: ChatMessage['role']): string {
-  if (role === 'chatgpt') {
-    return `<img src="${chatgptIconUrl}" alt="ChatGPT" class="message-avatar-image">`
+  const iconUrls: Record<SiteRole, string> = {
+    chatgpt: chatgptIconUrl,
+    gemini: geminiIconUrl,
+    claude: chrome.runtime.getURL('icons/claude.svg'),
+    deepseek: chrome.runtime.getURL('icons/deepseek.svg'),
+    kimi: chrome.runtime.getURL('icons/kimi.svg'),
+    doubao: chrome.runtime.getURL('icons/doubao.svg'),
+    yiyan: chrome.runtime.getURL('icons/yiyan.svg'),
+    tongyi: chrome.runtime.getURL('icons/tongyi.svg'),
+    perplexity: chrome.runtime.getURL('icons/perplexity.svg'),
   }
-
-  if (role === 'gemini') {
-    return `<img src="${geminiIconUrl}" alt="Gemini" class="message-avatar-image">`
+  const labels: Record<SiteRole, string> = {
+    chatgpt: 'ChatGPT',
+    gemini: 'Gemini',
+    claude: 'Claude',
+    deepseek: 'DeepSeek',
+    kimi: 'Kimi',
+    doubao: '豆包',
+    yiyan: '文心一言',
+    tongyi: '通义千问',
+    perplexity: 'Perplexity',
   }
-
+  const siteRole = role as SiteRole
+  if (iconUrls[siteRole]) {
+    return `<img src="${iconUrls[siteRole]}" alt="${labels[siteRole]}" class="message-avatar-image">`
+  }
   return '<span class="message-avatar-fallback">U</span>'
 }
 
@@ -1778,7 +1844,7 @@ function renderMessages(): void {
 
       const labelEl = document.createElement('div')
       labelEl.className = 'message-label'
-      labelEl.textContent = msg.role === 'user' ? t('labelYou') : msg.role === 'chatgpt' ? 'ChatGPT' : 'Gemini'
+      labelEl.textContent = getRoleDisplayName(msg.role)
 
       const contentEl = document.createElement('div')
       contentEl.className = 'message-content markdown-body'
@@ -1895,22 +1961,30 @@ function sendMessage(): void {
 }
 
 function updateStatus(site: string, status: string): void {
-  const el = site === 'chatgpt' ? statusChatgpt : statusGemini
-  if (site === 'chatgpt' || site === 'gemini') {
-    siteStatuses[site] = status
-  }
+  if (!allSiteRoles.includes(site as SiteRole)) return
+  const siteRole = site as SiteRole
+  siteStatuses[siteRole] = status
+  const el = document.getElementById(`status-${site}`)
+  if (!el) return
   const dot = status === 'idle' ? '🟢' : status === 'generating' ? '🟡' : status === 'error' ? '🔴' : '⚪'
-  const label = site === 'chatgpt' ? 'ChatGPT' : 'Gemini'
-  const statusText =
-    status === 'idle' ? t('statusReady') :
-    status === 'generating' ? t('statusGenerating') :
-    status === 'error' ? t('statusError') : t('statusOffline')
-  el.textContent = `${dot} ${label}: ${statusText}`
+  const labels: Record<SiteRole, string> = {
+    chatgpt: 'ChatGPT',
+    gemini: 'Gemini',
+    claude: 'Claude',
+    deepseek: 'DeepSeek',
+    kimi: 'Kimi',
+    doubao: '豆包',
+    yiyan: '文心一言',
+    tongyi: '通义千问',
+    perplexity: 'Perplexity',
+  }
+  const label = labels[siteRole] || site
+  el.textContent = `${dot} ${label}`
 }
 
 chrome.runtime.onMessage.addListener((message) => {
   if (message.type === 'ROLE_REPLY') {
-    const site = message.site as 'chatgpt' | 'gemini'
+    const site = message.site as SiteRole
     if (!isProviderEnabled(site)) return
     const isFinal = message.isFinal !== false // 默认 true
     const contentFormat = message.contentFormat === 'html' ? 'html' : 'text'
@@ -1936,9 +2010,9 @@ chrome.runtime.onMessage.addListener((message) => {
   }
 
   if (message.type === 'ROLE_STATUS') {
-    if (message.site === 'chatgpt' || message.site === 'gemini') {
-      if (!isProviderEnabled(message.site)) return
-      updateCurrentSessionUrl(message.site, message.pageUrl)
+    if (allSiteRoles.includes(message.site as SiteRole)) {
+      if (!isProviderEnabled(message.site as SiteRole)) return
+      updateCurrentSessionUrl(message.site as SiteRole, message.pageUrl)
     }
     updateStatus(message.site, message.status)
   }
@@ -1999,8 +2073,8 @@ providerOptionsEl.addEventListener('click', (event) => {
   const button = target.closest<HTMLButtonElement>('.provider-option')
   if (!button) return
 
-  const site = button.dataset.provider
-  if (site === 'chatgpt' || site === 'gemini') {
+  const site = button.dataset.provider as SiteRole | undefined
+  if (site && allSiteRoles.includes(site)) {
     setProviderEnabled(site, !isProviderEnabled(site))
   }
 })
@@ -2084,3 +2158,11 @@ initializeResizableLayout()
 renderLanguageOptions()
 renderProviderOptions()
 applyProviderVisibility()
+
+// 添加特定平台的 CSS 类到 iframe wrappers
+for (const site of allSiteRoles) {
+  const frameWrapper = document.getElementById(`ai-frame-wrapper-${site}`)
+  if (frameWrapper) {
+    frameWrapper.classList.add(`ai-frame-wrapper-${site}`)
+  }
+}
